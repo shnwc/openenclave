@@ -241,7 +241,7 @@ if (OE_SGX)
     target_compile_options(oecore PUBLIC
         -fPIE
         -nostdinc
-        -fstack-protector-strong
+        -fno-stack-protector
         -fvisibility=hidden
         # Preserve frame-pointer in Release mode to enable oe_backtrace.
         -fno-omit-frame-pointer
