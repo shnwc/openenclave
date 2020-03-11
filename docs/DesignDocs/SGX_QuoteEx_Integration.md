@@ -10,7 +10,7 @@ On some SGX platforms, other evidence formats - including those based on Enhance
 
 # User Experience
 
-The proposed extension only impacts the internal implementation of the OE SDK attestation software stack. It does not result in any change in the OE SDK API as described in [PR #2621](https://github.com/openenclave/openenclave/pull/2621). With the integration of the quote-ex library, an attester application enclave call to OE SDK API `oe_sgx_get_attester_plugins()` returns the list of all SGX evidence formats that can be generated for the calling enclave instance.
+The proposed extension only changes the internal implementation of the OE SDK attestation software stack. It does not impact the OE SDK API as described in [PR #2621](https://github.com/openenclave/openenclave/pull/2621). With the integration of the quote-ex library, an attester application enclave's call to OE SDK API `oe_sgx_get_attesters()` returns the list of all SGX evidence attester plugins available to the calling enclave instance.
 
 Integration of the quote-ex library depends on the installation of the Intel® SGX SDK quote-ex library and its dependencies, and proper configuration of the components and their access to dependent backend services. Details for the installation and configuration are outside of the scope of this document.
 
