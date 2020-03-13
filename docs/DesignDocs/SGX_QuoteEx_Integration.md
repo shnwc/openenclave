@@ -75,12 +75,13 @@ The OE SDK host-side plugin library is updated to dynamically detect the presenc
 
 ### Support of SGX Evidence Formats Enumeration
 
-the SGX plugin code file `enclave/sgx/attester.c` implements the OE SDK API `oe_sgx_get_attester_plugins()`: enumerates all supported SGX evidence formats, creates a list of attester plugins for them, and returns the created list to the caller.
+the SGX plugin code file `enclave/sgx/attester.c` implements the OE SDK API `oe_sgx_get_attesters()`: enumerates all supported SGX evidence formats, creates a list of attester plugins for them, and returns the created list to the caller.
 
 For SGX evidence formats enumeration, a new OCALL is added to interface definition file in `common/sgx/sgx.edl` and implemented in the host-side SGX plugin library:
 
-- `oe_get_supported_sgx_attester_format_ids(oe_uuid_t** format_ids, size_t* format_ids_length)`
-    - Note: this OCALL returns a list of supported evidence format IDs in a dynamically allocated buffer. The caller should reclaim the buffer after consumption of the list.
+- `oe_get_supported_attester_format_ids_ocall(void* format_ids, size_t format_ids_size, size_t* format_ids_size_out)`
+    - This OCALL returns a list of supported evidence format IDs in caller-supplied buffer, and returns the size of the buffer actually used to hold the list.
+    - But if the supplied buffer is missing or not large enough, it only returns the needed buffer size.
 
 In the implementation of this OCALL by the host-side SGX plugin library:
 
