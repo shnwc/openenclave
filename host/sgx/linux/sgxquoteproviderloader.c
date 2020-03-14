@@ -24,7 +24,7 @@ void oe_load_quote_provider()
     {
         OE_TRACE_INFO("oe_load_quote_provider libdcap_quoteprov.so\n");
         provider.handle =
-            dlopen("libdcap_quoteprov_azure.so", RTLD_LAZY | RTLD_LOCAL);
+            dlopen("libdcap_quoteprov.so", RTLD_LAZY | RTLD_LOCAL);
         if (provider.handle != 0)
         {
             provider.get_revocation_info =
