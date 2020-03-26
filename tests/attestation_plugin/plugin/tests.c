@@ -22,8 +22,6 @@
 #include "mock_attester.h"
 #include "tests.h"
 
-oe_verifier_t* sgx_verify = NULL;
-
 typedef struct _header
 {
     uint32_t version;
@@ -118,7 +116,7 @@ static void _test_evidence_success(
     oe_claim_t* claims = NULL;
     size_t claims_length = 0;
 
-    OE_TEST(
+    OE_TEST_CODE(
         oe_get_evidence(
             format_id,
             0,
@@ -129,9 +127,10 @@ static void _test_evidence_success(
             &evidence,
             &evidence_size,
             use_endorsements ? &endorsements : NULL,
-            use_endorsements ? &endorsements_size : NULL) == OE_OK);
+            use_endorsements ? &endorsements_size : NULL),
+        OE_OK);
 
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_evidence(
             evidence,
             evidence_size,
@@ -140,7 +139,8 @@ static void _test_evidence_success(
             NULL,
             0,
             &claims,
-            &claims_length) == OE_OK);
+            &claims_length),
+        OE_OK);
 
     OE_TEST(_check_claims(claims, claims_length));
 
@@ -186,7 +186,7 @@ static void _test_verify_evidence_fail()
     oe_claim_t* claims;
     size_t claims_length;
 
-    OE_TEST(
+    OE_TEST_CODE(
         oe_get_evidence(
             &mock_attester1.base.format_id,
             0,
@@ -197,7 +197,8 @@ static void _test_verify_evidence_fail()
             &evidence,
             &evidence_size,
             &endorsements,
-            &endorsements_size) == OE_OK);
+            &endorsements_size),
+        OE_OK);
 
     // Test verify_evidence with wrong sizes
     OE_TEST(
@@ -244,7 +245,7 @@ static void _test_verify_evidence_fail()
     oe_claim_t* claims2;
     size_t claims2_length;
 
-    OE_TEST(
+    OE_TEST_CODE(
         oe_get_evidence(
             &mock_attester2.base.format_id,
             0,
@@ -255,7 +256,8 @@ static void _test_verify_evidence_fail()
             &evidence2,
             &evidence2_size,
             &endorsements2,
-            &endorsements2_size) == OE_OK);
+            &endorsements2_size),
+        OE_OK);
 
     OE_TEST(
         oe_verify_evidence(
@@ -318,14 +320,12 @@ void test_runtime()
 
 void register_verifier()
 {
-    sgx_verify = oe_sgx_plugin_verifier();
-    OE_TEST(oe_register_verifier(sgx_verify, NULL, 0) == OE_OK);
+    OE_TEST_CODE(oe_initialize_verifier_plugins(), OE_OK);
 }
 
 void unregister_verifier()
 {
-    OE_TEST(oe_unregister_verifier(sgx_verify) == OE_OK);
-    sgx_verify = NULL;
+    OE_TEST_CODE(oe_shutdown_verifier_plugins(), OE_OK);
 }
 
 static void* _find_claim(
@@ -480,7 +480,7 @@ void verify_sgx_evidence(
     void* until;
 
     // Try with no policies.
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_evidence(
             evidence,
             evidence_size,
@@ -489,7 +489,8 @@ void verify_sgx_evidence(
             NULL,
             0,
             &claims,
-            &claims_size) == OE_OK);
+            &claims_size),
+        OE_OK);
 
     // Make sure that the identity info matches with the regular oe report.
     // We need to remove the attestation header and the claims first.
@@ -546,10 +547,8 @@ void verify_sgx_evidence(
     // Check UUID.
     value = _find_claim(claims, claims_size, OE_CLAIM_PLUGIN_UUID);
     OE_TEST(
-        value != NULL && memcmp(
-                             value,
-                             &sgx_verify->base.format_id,
-                             sizeof(sgx_verify->base.format_id)) == 0);
+        value != NULL &&
+        memcmp(value, &header->format_id, sizeof(header->format_id)) == 0);
 
     // Check date time.
     from = _find_claim(claims, claims_size, OE_CLAIM_VALIDITY_FROM);

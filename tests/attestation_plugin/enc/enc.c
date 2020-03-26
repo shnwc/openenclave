@@ -8,6 +8,7 @@
 #include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/sgxtypes.h>
 #include <openenclave/internal/tests.h>
+#include <openenclave/internal/trace.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -15,7 +16,8 @@
 #include "../plugin/tests.h"
 #include "plugin_t.h"
 
-oe_attester_t* sgx_attest = NULL;
+static oe_uuid_t sgx_ecdsa_uuid = {OE_SGX_ECDSA_P256_PLUGIN_UUID};
+static oe_uuid_t sgx_local_uuid = {OE_SGX_LOCAL_ATTESTATION_PLUGIN_UUID};
 
 void run_runtime_test()
 {
@@ -26,8 +28,7 @@ void register_sgx()
 {
     printf("====== running register_sgx\n");
 
-    sgx_attest = oe_sgx_plugin_attester();
-    OE_TEST(oe_register_attester(sgx_attest, NULL, 0) == OE_OK);
+    OE_TEST_CODE(oe_initialize_attester_plugins(), OE_OK);
     register_verifier();
 }
 
@@ -35,8 +36,7 @@ void unregister_sgx()
 {
     printf("====== running unregister_sgx\n");
 
-    OE_TEST(oe_unregister_attester(sgx_attest) == OE_OK);
-    sgx_attest = NULL;
+    OE_TEST_CODE(oe_shutdown_attester_plugins(), OE_OK);
     unregister_verifier();
 }
 
@@ -50,10 +50,10 @@ static void _test_sgx_remote()
 
     // Get a remote attestation report.
     printf("====== running _test_sgx_remote #1: Just evidence\n");
-    OE_TEST(
+    OE_TEST_CODE(
         oe_get_evidence(
-            &sgx_attest->base.format_id,
-            OE_REPORT_FLAGS_REMOTE_ATTESTATION,
+            &sgx_ecdsa_uuid,
+            0,
             NULL,
             0,
             NULL,
@@ -61,7 +61,10 @@ static void _test_sgx_remote()
             &evidence,
             &evidence_size,
             NULL,
-            0) == OE_OK);
+            0),
+        OE_OK);
+
+    printf("    ====== evidence_size=%d\n", evidence_size);
 
     verify_sgx_evidence(evidence, evidence_size, NULL, 0, NULL, 0, false);
 
@@ -69,10 +72,10 @@ static void _test_sgx_remote()
 
     // Get a remote report with endorsements.
     printf("====== running _test_sgx_remote #2: + Endorsements\n");
-    OE_TEST(
+    OE_TEST_CODE(
         oe_get_evidence(
-            &sgx_attest->base.format_id,
-            OE_REPORT_FLAGS_REMOTE_ATTESTATION,
+            &sgx_ecdsa_uuid,
+            0,
             NULL,
             0,
             NULL,
@@ -80,7 +83,13 @@ static void _test_sgx_remote()
             &evidence,
             &evidence_size,
             &endorsements,
-            &endorsements_size) == OE_OK);
+            &endorsements_size),
+        OE_OK);
+
+    printf(
+        "    ====== evidence_size=%d endorsements_size=%d\n",
+        evidence_size,
+        endorsements_size);
 
     verify_sgx_evidence(
         evidence,
@@ -96,10 +105,10 @@ static void _test_sgx_remote()
 
     // Get a remote report with both.
     printf("====== running _test_sgx_remote #3: + Claims\n");
-    OE_TEST(
+    OE_TEST_CODE(
         oe_get_evidence(
-            &sgx_attest->base.format_id,
-            OE_REPORT_FLAGS_REMOTE_ATTESTATION,
+            &sgx_ecdsa_uuid,
+            0,
             test_claims,
             NUM_TEST_CLAIMS,
             NULL,
@@ -107,7 +116,14 @@ static void _test_sgx_remote()
             &evidence,
             &evidence_size,
             &endorsements,
-            &endorsements_size) == OE_OK);
+            &endorsements_size),
+        OE_OK);
+
+    printf(
+        "    ====== evidence_size=%d endorsements_size=%d claims_length=%d\n",
+        evidence_size,
+        endorsements_size,
+        NUM_TEST_CLAIMS);
 
     verify_sgx_evidence(
         evidence,
@@ -149,7 +165,7 @@ static void _test_sgx_local()
     printf("====== running _test_sgx_local #1: Just evidence\n");
     OE_TEST(
         oe_get_evidence(
-            &sgx_attest->base.format_id,
+            &sgx_local_uuid,
             0,
             NULL,
             0,
@@ -168,7 +184,7 @@ static void _test_sgx_local()
     printf("====== running _test_sgx_local #2: + Claims\n");
     OE_TEST(
         oe_get_evidence(
-            &sgx_attest->base.format_id,
+            &sgx_local_uuid,
             0,
             test_claims,
             NUM_TEST_CLAIMS,
