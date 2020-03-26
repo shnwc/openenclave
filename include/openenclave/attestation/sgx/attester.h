@@ -20,20 +20,42 @@
 OE_EXTERNC_BEGIN
 
 /**
- *  The `opt_params` field for `oe_get_evidence` identical to the `opt_params`
- *  field `oe_get_report`. In other words, it is the output of
- * `oe_get_target_info` for local attestation and is ignored for remote
- *  attestation.
- */
-typedef void* oe_sgx_plugin_opt_params;
-
-/**
- * Helper function that returns the SGX attester that can then be sent to
+ * oe_sgx_get_attesters
+ *
+ * Helper function that returns the SGX attesters that can then be sent to
  * `oe_register_attester`.
  *
- * @retval A pointer to the SGX attester. This function never fails.
+ * @param[out] attesters The list of SGX attesters that are available to the
+ * application.
+ * @param[out] attesters_length The number of entries in the SGX attesters list
+ * @retval OE_OK on success.
+ * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
+ * @retval other appropriate error code.
  */
-oe_attester_t* oe_sgx_plugin_attester(void);
+oe_result_t oe_get_attester_plugins(
+    oe_attester_t** attesters,
+    size_t* attesters_length);
+
+/**
+ * oe_initialize_attester_plugins
+ *
+ * Enumerates all attester plugins and register them
+ *
+ * @retval OE_OK on success.
+ * @retval other appropriate error code.
+ */
+oe_result_t oe_initialize_attester_plugins(void);
+
+/**
+ * oe_sgx_shutdown_attester_plugins
+ *
+ * Release all resources allocated to attesters, in prep for application
+ * shutdown.
+ *
+ * @retval OE_OK on success.
+ * @retval other appropriate error code.
+ */
+oe_result_t oe_shutdown_attester_plugins(void);
 
 OE_EXTERNC_END
 

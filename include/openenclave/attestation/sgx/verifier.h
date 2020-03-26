@@ -16,12 +16,40 @@
 OE_EXTERNC_BEGIN
 
 /**
- * Helper function that returns the SGX verifier that can then be sent to
- * `oe_register_verifier`.
+ * oe_get_verifier_plugins
  *
- * @retval A pointer to the SGX verifier. This function never fails.
+ * Helper function that returns the built-in verifier plugins that can then be
+ * sent to `oe_register_verifier`.
+ *
+ * @experimental
+ * @param[out] verifiers The verifiers that are available to the application.
+ * @param[out] verifiers_length The length of the verifiers.
+ * @retval OE_OK on success.
  */
-oe_verifier_t* oe_sgx_plugin_verifier(void);
+oe_result_t oe_get_verifier_plugins(
+    oe_verifier_t** verifiers,
+    size_t* verifiers_length);
+
+/**
+ * oe_initialize_verifier_plugins
+ *
+ * Enumerates all verifier plugins and register them
+ *
+ * @retval OE_OK on success.
+ * @retval other appropriate error code.
+ */
+oe_result_t oe_initialize_verifier_plugins(void);
+
+/**
+ * oe_sgx_shutdown_verifier_plugins
+ *
+ * Release all resources allocated to verifiers, in prep for application
+ * shutdown.
+ *
+ * @retval OE_OK on success.
+ * @retval other appropriate error code.
+ */
+oe_result_t oe_shutdown_verifier_plugins(void);
 
 OE_EXTERNC_END
 

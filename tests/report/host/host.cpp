@@ -4,6 +4,7 @@
 #include <openenclave/host.h>
 #include <openenclave/internal/error.h>
 #include <openenclave/internal/hexdump.h>
+#include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/tests.h>
 #include <openenclave/internal/utils.h>
 #include <ctime>
@@ -153,9 +154,12 @@ int main(int argc, const char* argv[])
 
 #ifdef OE_LINK_SGX_DCAP_QL
 
+    static oe_uuid_t sgx_ecdsa_uuid = {OE_SGX_ECDSA_P256_PLUGIN_UUID};
+
     /* Initialize the target info */
     {
-        if ((result = sgx_get_qetarget_info(&target_info)) != OE_OK)
+        if ((result = sgx_get_qetarget_info(
+                 &sgx_ecdsa_uuid, NULL, 0, &target_info)) != OE_OK)
         {
             oe_put_err("sgx_get_qetarget_info(): result=%u", result);
         }

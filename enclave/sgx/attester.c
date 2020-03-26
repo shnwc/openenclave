@@ -10,10 +10,15 @@
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/report.h>
 #include <openenclave/internal/sgx/plugin.h>
+#include <openenclave/internal/tests.h>
+#include <openenclave/internal/thread.h>
+#include <openenclave/internal/trace.h>
 
 #include <mbedtls/sha256.h>
 
 #include "../common/sgx/endorsements.h"
+#include "../core/sgx/report.h"
+#include "sgx_t.h"
 
 static oe_result_t _on_register(
     oe_attestation_role_t* context,
@@ -119,6 +124,8 @@ done:
     return result;
 }
 
+static oe_uuid_t _sgx_local_uuid = {OE_SGX_LOCAL_ATTESTATION_PLUGIN_UUID};
+
 // Timing note:
 // Roughly 0.002 seconds without endorsements.
 // Roughtly 0.5 seconds with endorsements.
@@ -149,6 +156,12 @@ static oe_result_t _get_evidence(
         (endorsements_buffer && !endorsements_buffer_size))
         OE_RAISE(OE_INVALID_PARAMETER);
 
+    // Set flags based on format UUID, ignore and overwrite the input value
+    if (!memcmp(&context->base.format_id, &_sgx_local_uuid, sizeof(oe_uuid_t)))
+        flags = 0;
+    else
+        flags = OE_REPORT_FLAGS_REMOTE_ATTESTATION;
+
     // Serialize the claims.
     OE_CHECK_MSG(
         _serialize_claims(
@@ -158,8 +171,9 @@ static oe_result_t _get_evidence(
 
     // Get the report with the hash of the claims as the report data.
     OE_CHECK_MSG(
-        oe_get_report(
+        oe_get_report_v2_internal(
             flags,
+            &context->base.format_id,
             hash.buf,
             sizeof(hash.buf),
             opt_params,
@@ -232,17 +246,138 @@ static oe_result_t _free_endorsements(
     return OE_OK;
 }
 
-static oe_attester_t _attester = {.base =
-                                      {
-                                          .format_id = {OE_SGX_PLUGIN_UUID},
-                                          .on_register = &_on_register,
-                                          .on_unregister = &_on_unregister,
-                                      },
-                                  .get_evidence = &_get_evidence,
-                                  .free_evidence = &_free_evidence,
-                                  .free_endorsements = &_free_endorsements};
-
-oe_attester_t* oe_sgx_plugin_attester()
+oe_result_t oe_get_attester_plugins(
+    oe_attester_t** attesters,
+    size_t* attesters_length)
 {
-    return &_attester;
+    // Serialized access from multiple threads
+    static oe_mutex_t mutex = OE_MUTEX_INITIALIZER;
+    oe_result_t result = OE_UNEXPECTED;
+    oe_result_t retval = OE_UNEXPECTED;
+    size_t tmp_buf_size = 0;
+    uint8_t* tmp_buf = NULL;
+
+    if (!attesters || !attesters_length)
+        OE_RAISE(OE_INVALID_PARAMETER);
+
+    OE_TEST(oe_mutex_lock(&mutex) == 0);
+
+    // Get the size of the needed buffer
+    result = oe_get_supported_attester_format_ids_ocall(
+        (uint32_t*)&retval, NULL, 0, &tmp_buf_size);
+    OE_CHECK(result);
+    // It's possible that there is no supported format
+    if (tmp_buf_size >= sizeof(oe_uuid_t))
+    {
+        // Allocate buffer to held the format IDs
+        tmp_buf = oe_calloc(1, tmp_buf_size);
+        if (tmp_buf == NULL)
+        {
+            result = OE_OUT_OF_MEMORY;
+            goto done;
+        }
+
+        // Get the format IDs
+        result = oe_get_supported_attester_format_ids_ocall(
+            (uint32_t*)&retval, tmp_buf, tmp_buf_size, &tmp_buf_size);
+        OE_CHECK(result);
+    }
+
+    oe_uuid_t* uuid_list = (oe_uuid_t*)tmp_buf;
+    size_t uuid_count = tmp_buf_size / sizeof(oe_uuid_t);
+
+    // Add one additional entry: the first one for local attestation
+    *attesters =
+        (oe_attester_t*)oe_calloc(1, sizeof(oe_attester_t) * (uuid_count + 1));
+    if (*attesters == NULL)
+    {
+        result = OE_OUT_OF_MEMORY;
+        goto done;
+    }
+    for (size_t i = 0; i < uuid_count + 1; i++)
+    {
+        oe_attester_t* plugin = *attesters + i;
+        if (i == 0)
+            memcpy(
+                &plugin->base.format_id, &_sgx_local_uuid, sizeof(oe_uuid_t));
+        else
+            memcpy(
+                &plugin->base.format_id,
+                uuid_list + (i - 1),
+                sizeof(oe_uuid_t));
+        plugin->base.on_register = &_on_register;
+        plugin->base.on_unregister = &_on_unregister;
+        plugin->get_evidence = &_get_evidence;
+        plugin->free_evidence = &_free_evidence;
+        plugin->free_endorsements = &_free_endorsements;
+    }
+    *attesters_length = uuid_count + 1;
+
+done:
+    if (tmp_buf)
+    {
+        oe_free(tmp_buf);
+        tmp_buf = NULL;
+    }
+    oe_mutex_unlock(&mutex);
+    return result;
+}
+
+static oe_attester_t* attesters = NULL;
+static size_t attesters_length = 0;
+static oe_mutex_t init_mutex = OE_MUTEX_INITIALIZER;
+
+oe_result_t oe_initialize_attester_plugins(void)
+{
+    oe_result_t result = OE_UNEXPECTED;
+
+    OE_TEST(oe_mutex_lock(&init_mutex) == 0);
+
+    // Do nothing if attester plugins are already initialized
+    if (attesters)
+    {
+        result = OE_OK;
+        goto done;
+    }
+
+    result = oe_get_attester_plugins(&attesters, &attesters_length);
+    OE_CHECK(result);
+
+    for (size_t i = 0; i < attesters_length; i++)
+    {
+        result = oe_register_attester(attesters + i, NULL, 0);
+        OE_CHECK(result);
+    }
+
+done:
+    oe_mutex_unlock(&init_mutex);
+    OE_TRACE_INFO("attesters_length=%d", attesters_length);
+    return result;
+}
+
+// Registration of plugins does not allocate any resources to them.
+oe_result_t oe_shutdown_attester_plugins(void)
+{
+    oe_result_t result = OE_UNEXPECTED;
+
+    OE_TEST(oe_mutex_lock(&init_mutex) == 0);
+
+    // Either attester plugins have not been initialized,
+    // or there is no supported plugin
+    if (!attesters)
+    {
+        result = OE_OK;
+        goto done;
+    }
+
+    for (size_t i = 0; i < attesters_length; i++)
+        result = oe_unregister_attester(attesters + i);
+
+    oe_free(attesters);
+    attesters = NULL;
+    attesters_length = 0;
+
+done:
+    oe_mutex_unlock(&init_mutex);
+    return result;
 }
