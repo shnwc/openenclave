@@ -82,6 +82,9 @@ static oe_result_t _get_remote_report(
     if (report_buffer == NULL)
         *report_buffer_size = 0;
 
+    // Host-side evidence generation is not supported
+    OE_RAISE(OE_UNSUPPORTED);
+
     /*
      * Get target info from Quoting Enclave.
      */
@@ -90,7 +93,7 @@ static oe_result_t _get_remote_report(
     if (sgx_target_info == NULL)
         OE_RAISE(OE_OUT_OF_MEMORY);
 
-    OE_CHECK(sgx_get_qetarget_info(sgx_target_info));
+    OE_CHECK(sgx_get_qetarget_info(NULL, NULL, 0, sgx_target_info));
 
     /*
      * Get sgx_report_t from the enclave.
@@ -110,7 +113,8 @@ static oe_result_t _get_remote_report(
     /*
      * Get quote from Quoting Enclave.
      */
-    OE_CHECK(sgx_get_quote(sgx_report, report_buffer, report_buffer_size));
+    OE_CHECK(sgx_get_quote(
+        NULL, NULL, 0, sgx_report, report_buffer, report_buffer_size));
 
     result = OE_OK;
 
