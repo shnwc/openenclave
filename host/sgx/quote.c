@@ -143,7 +143,9 @@ oe_result_t sgx_get_supported_attester_format_ids(
     result =
         oe_sgx_get_supported_attester_format_ids(format_ids, format_ids_size);
 #else
-    result = OE_UNSUPPORTED;
+    // No supported format ID
+    *format_ids_size = 0;
+    result = OE_OK;
 #endif
 
 done:
