@@ -473,7 +473,10 @@ oe_result_t oe_get_verifier_plugins(
 
     OE_TEST(oe_mutex_lock(&mutex) == 0);
 
-    size_t uuid_count = 2; // Only support ECDSA and local formats
+    size_t uuid_count = 2; // Only support local and ECDSA formats
+    // Note: without access to QPL (with OE_LINK_SGX_DCAP_QL undefined)
+    // support of ECDSA likely is incomplete, so we should not create
+    // a plugin for it.
 
     *verifiers =
         (oe_verifier_t*)oe_calloc(1, sizeof(oe_verifier_t) * uuid_count);
