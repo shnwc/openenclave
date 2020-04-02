@@ -7,7 +7,16 @@ This design document proposes an extension of the OE SDK implementation for inte
 
 The existing implementation of OE SDK SGX attestation, based on the Intel® SGX SDK Data Center Attestation Primitives (DCAP) quote generation library (simply called the DCAP library), only supports generation of evidence in a single SGX ECDSA-p256 format.
 
-On some SGX platforms, other evidence formats, including those based on the Enhanced Privacy ID (EPID) algorithm, are supported and preferred by some application solutions. Generation of evidence in these formats is supported by the Intel® SGX SDK with a library package libsgx-quote-ex (or simply called quote-ex).
+On some SGX platforms, other evidence formats, including those based on the
+Enhanced Privacy ID (EPID) algorithm, are supported and preferred by
+some application solutions. Generation of evidence in these formats is supported
+by the Intel® SGX SDK with a library package libsgx-quote-ex
+(or simply called the quote-ex library).
+
+Note: though the acronym DCAP has "data center" in it, the DCAP library
+can be used on platforms both inside and outside data centers.
+Similarly, the quote-ex library can also be used on platforms both inside
+and outside of data centers.
 
 # User Experience
 
