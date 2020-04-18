@@ -130,6 +130,54 @@ in the list of acceptable formats as defined in the security policies.
   defined in the security policies.
 
 # Notes on SGX Plugins Design
+
+## Evidence Format, Plugin, and Plugin Library
+
+In the OE SDK attestation API described in
+[Custom Attestation Data Formats for Open Enclave V3 Updates](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md), every evidence format is uniquely identified by a UUID. Enclave and host
+applications can discover formats supported for evidence verification.
+Enclave applications can select a format for evidence generation. For evidence
+generation, API `oe_get_evidence()` takes in an evidence format UUID along with
+other input parameters. Upon successful operation, `oe_get_evidence()` returns
+an evidence blob with the evidence format UUID included as a field in its
+header structure.
+
+In the OE SDK attestation plugin design, a plugin is a subsystem that exposes
+a set of API entry points for evidence generation or verification, as defined
+in this [header file](https://github.com/openenclave/openenclave/blob/master/include/openenclave/attestation/plugin.h).
+A plugin can either be an attester plugin, or a verifier plugin.
+Each plugin is associated with a single evidence format UUID. On the other hand,
+in theory multiple plugins can exist in a configuration for the same format,
+though in practice this is unlikely since there is no clear benefit for the
+added complexity in implementation.
+
+In an implementation of the OE SDK design, the set of supported plugins
+are implemented by a set of enclave-side and host-side plugin libraries and
+their dependencies. These plugin libraries can either be static or shared
+libraries, as supported by the build environment. There is no one-on-one
+mapping between plugins and plugin libraries.
+A single plugin may be implemented by multiple plugin libraries. For example,
+an enclave-side attester plugin typically need at least one enclave-side
+plugin library and a host-side plugin library. On the other hand,
+a single set of plugin libraries can implement multiple plugins.
+
+Note: an enclave-side plugin library can also be called an
+[openenclave module](https://github.com/jhand2/openenclave/blob/global_module_initialization/docs/DesignDocs/openenclave_modules.md).
+
+As an example, here is a possible configuration for support of SGX attester and
+verifier plugins for ECDSA and EPID evidence formats:
+- ECDSA and EPID attester plugins can be implemented by a single set of plugin
+libraries and their dependencies, composed of:
+  - One enclave-side SGX evidence generation plugin library
+  - One host-side SGX evidence generation plugin library
+  - Dependencies: Intel SGX SDK DCAP quote generation library SGX quote-ex
+  library, SGX Quote Provider Library (QPL), as well as their dependencies
+- ECDSA verifier plugin can be implemented by another set of plugin libraries
+  - One enclave-side SGX evidence verification library
+  - One host-side SGX evidence verification library
+  - Dependencies: Intel SGX DCAP quote verification library, QPL, as well as
+  their dependencies.
+
 ## Options for Enclave-side Plugin Library Initialization
 
 As described in the latest version (as of March 2020) of the design document
@@ -144,9 +192,8 @@ In general, there are several options for initialization of enclave-side
 plugin libraries while keeping application enclaves TEE agnostic.
 
 In this section, we focus on the discussion of the options for initialization
-of attester plugins. Similar options are available for initialization of
-verifier plugins. Since verifier plugins are available both on the enclave
-and host sides, their initialization on both sides are required.
+of attester plugins. Same options are available for initialization of
+enclave-side verifier plugins.
 
 1. Every enclave-side plugin library implements the same OE SDK API
 `oe_get_attester_plugins()`.
@@ -154,7 +201,7 @@ and host sides, their initialization on both sides are required.
     With this option, a build of an application enclave project can only link
     with a single attestation plugin library, to avoid function name collision.
 
-2. Compile-time macro to convert from TEE-agnostic API to TEE-specific
+2. Build-time macro to convert from TEE-agnostic API to TEE-specific
 implementation.
 
     With this option, application enclaves still call TEE-agnostic OE SDK API
@@ -170,8 +217,26 @@ implementation.
     `oe_get_attester_plugins()` macro definition for every configuration
     it supports.
 
-3. Every enclave-side plugin library registers its initialization function
-with the OE SDK framework.
+3. Build-time manifest to list plugin libraries and their
+initialization entry points
+
+    With this option, every plugin library has its own initialization
+    entry point with globally unique name and well-defined prototype.
+    To build and sign an attester application enclave, a manifest / metadata
+    (.conf file) is created that contains the list of linked enclave-side
+    plugin libraries and their entry points. This manifest is compiled and
+    signed as part of the attester enclave image.
+
+    During run-time, upon load of an application enclave, its OE SDK framework
+    reads its embedded manifest, retrieves the addresses of all the listed
+    initialization function entry points, and invokes them in the order listed.
+
+    Note: this option requires the definition of the manifest format and the
+    new capability for the OE SDK build and signing tools to support processing of
+    manifest files.
+
+4. Run-time enclave-side plugin libraries registration of their initialization
+functions with the OE SDK framework.
 
     The design document
     [OpenEnclave Modules](https://github.com/jhand2/openenclave/blob/global_module_initialization/docs/DesignDocs/openenclave_modules.md)
@@ -198,6 +263,82 @@ with the OE SDK framework.
     plugin libraries, as long as the function `oe_get_attester_plugins()` is
     implemented as idempotent, so that it can be invoked multiple times,
     each time after a new plugin library is loaded.
+
+    Note: to enable this option, the OE SDK attestation framework has to be
+    initialized with the needed locks and list structure, before plugin
+    libraries can register their initialization functions.
+
+## Options for Host-side Plugin Library Initialization
+
+In addition to enclave-side attester and verifier plugins, OE SDK also supports
+host-side verifier plugins. Options for host-side plugin libraries
+initialization are similar to that for enclave-side plugin libraries
+initialization, with some differences as discussed below.
+
+1. Every host-side verifier plugin library implements the same OE SDK API
+`oe_get_verifier_plugins()`.
+
+    With this option, a build of an OE SDK host verifier application can only
+    link with a single verifier plugin library, to avoid function name collision.
+
+    But if the host-side verifier plugin libraries are dynamically loaded,
+    then the above limit no longer applies. Arbitrary number of shared
+    libraries can be loaded, and all of them can have entry points of the
+    same name. This is described as option 3.
+
+2. Build-time macro to convert from TEE-agnostic API to TEE-specific
+implementation.
+
+    With this option, OE SDK host applications still call TEE-agnostic
+    OE SDK API `oe_get_verifier_plugins()`.
+    But the OE SDK provides a macro definition of this function calling
+    the TEE- and library-specific initialization functions of linked
+    host-side plugin libraries.
+
+    The OE SDK build environment is required to provide a
+    `oe_get_verifier_plugins()` macro definition for every configuration
+    it supports.
+
+3. Load-time manifest to list plugin libraries and their initialization
+entry points
+
+    With this option, for an OE SDK host verifier application,
+    a manifest file (.conf file) is provided, with a list
+    of supported verifier plugin libraries (shared) and their entry point
+    names.
+
+    During run-time, when the OE SDK host application starts, its OE SDK
+    host-side framework reads in the manifest file, dynamically loads
+    the listed host-side verifier plugin shared libraries, finds the addresses
+    of the listed entry points, and calls them in the order listed.
+    The initialization functions of all the plugin libraries can have the
+    same name.
+
+    Host applications are not signed. Manifest files are not signed either.
+
+4. Run-time host-side plugin libraries registration of their initialization
+functions with the OE SDK framework.
+
+    C/C++ global constructors can be used for this purpose.
+    An explanation of them can be found in
+    [this document](https://wiki.osdev.org/Calling_Global_Constructors).
+
+    Note: to enable this option, the OE SDK host-side framework has to be
+    initialized with the needed locks and list structure, before plugin
+    libraries can register their initialization functions.
+
+## Discussion
+
+For initialization of enclave-side plugin libraries, option #3 (build-time
+manifest to list plugin libraries and their initialization entry points)
+is the most promising. It gives application enclave developers the most
+control.
+
+For initialization of host-side plugin libraries, option #3 (load-time
+manifest to list plugin libraries and their initialization entry points)
+is also the most promising, allowing load-time control of the list of
+supported plugin libraries and the order in which these libraries are
+initialized.
 
 # References
 
