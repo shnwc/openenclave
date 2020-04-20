@@ -332,13 +332,20 @@ functions with the OE SDK framework.
 For initialization of enclave-side plugin libraries, option #3 (build-time
 manifest to list plugin libraries and their initialization entry points)
 is the most promising. It gives application enclave developers the most
-control.
+control. But this option requires the OE SDK build and signing tools to
+add support of manifests.
 
 For initialization of host-side plugin libraries, option #3 (load-time
 manifest to list plugin libraries and their initialization entry points)
 is also the most promising, allowing load-time control of the list of
 supported plugin libraries and the order in which these libraries are
-initialized.
+initialized. But support of this operation requires the OE SDK host-side
+framework to add capability to process manifests.
+
+Before support of enclave-side and host-side option 3 is available,
+option 1 can be readily supported. The OE SDK attestation API and plugin
+architecture can be designed so that, moving from option 1 to option 3,
+there is no change in the public API and the plugins implementation.
 
 # References
 
