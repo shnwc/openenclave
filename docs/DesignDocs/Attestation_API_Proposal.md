@@ -1,0 +1,534 @@
+Proposal of OE SDK Attestation Public and Plugin API for V0.10 Release
+====
+
+# Background
+
+This document describes the proposed OE SDK attestation public and plugin API
+for V0.10 release, as an evolution of the experimental attestation API
+implemented in the
+[OE SDK V0.9 release](https://github.com/openenclave/openenclave/tree/v0.9.x).
+
+This proposal is based on these efforts:
+- Design document [Attestation V3 Update]:
+[Custom Attestation Data Formats for Open Enclave V3 Updates](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md).
+- Discussion in [Issue #2729]: [Outstanding issues on attestation plugin design](https://github.com/openenclave/openenclave/issues/2729).
+- Design document [quote-ex Integration]:
+[Attestation: OE SDK Integration with Intel® SGX SDK quote-ex Library for Generation of Evidence in New Formats](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/SGX_QuoteEx_Integration.md).
+- Design document [Design Notes]:
+[Notes on OE SDK Attestation API and Plugin Library Design](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md).
+  - Note: this document is in the process of being up-streamed as OE SDK [PR #2801](https://github.com/openenclave/openenclave/pull/2801).
+
+# OE SDK Attestation Public API Proposal
+
+## Existing OE SDK V0.9 Public API
+
+The OE SDK V0.9 experimental public API for attestation is composed of
+functions for a number of use cases to be implemented by applications.
+The use cases fall into two categories: evidence generation and verification.
+
+Use cases for evidence generation:
+
+- Retrieve a single SGX attester plugin.
+  - Function `oe_attester_t* oe_sgx_plugin_attester(void)`,
+  declared in header file [openenclave/attestation/sgx/attester.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/sgx/attester.h).
+  - It returns a single hardcoded SGX attester plugin for generation of
+  evidences in SGX ECDSA-p256 (simply called ECDSA) format.
+- Register an attester plugin.
+  - Function `oe_result_t oe_register_attester(oe_attester_t* plugin, const void* config_data, size_t config_data_size)`, declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+  - The attester plugin returned by `oe_sgx_plugin_attester()` can be
+  registered with this function.
+  - Note: requirement for the application to supply a plugin-specific `config_data`
+  parameter is against the goal of a TEE-agnostic OE SDK API. More discussion on
+  TEE agnostic design can be found in the
+  [[Design Notes]](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md#attester--verifier-security-model-and-tee-agnostic-design)
+  document.
+- Get an evidence in a globally unique format, optionally along with a set of
+endorsements.
+  - Function `oe_result_t oe_get_evidence(const oe_uuid_t* evidence_format_uuid, uint32_t flags, const oe_claim_t* custom_claims, size_t custom_claims_length, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* vidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`,
+    declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+  - Upon successful evidence generation, `oe_get_evidence()` returns the
+  generated evidence in a dynamically allocated buffer. It also has the option
+  to return a set of endorsements in another dynamically allocated buffer.
+  After processing of the evidence and the endorsements, the caller is
+  responsible to free these buffers.
+  - The `flags` parameter is a legacy inherited from the legacy API
+  `oe_get_report()` to indicate SGX local or remote attestation.
+  It's redundant -- overlapping with the `evidence_format_uuid` parameter
+  which identifies evidence formats with globally unique UUIDs.
+- Free a dynamically allocated evidence buffer.
+  - Function `oe_result_t oe_free_evidence(uint8_t* evidence_buffer)`,
+  declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h)
+- Free a dynamically allocated endorsements buffer.
+  - Function `oe_result_t oe_free_endorsements(uint8_t* endorsements_buffer)`,
+  declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h)
+- Unregister an attester plugin.
+  - Function `oe_unregister_attester(oe_attester_t* plugin)`,
+  declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+
+Use cases for evidence verification:
+
+- Retrieve a single SGX verifier plugin.
+  - Function `oe_verifier_t* oe_sgx_plugin_verifier(void)`, declared in header
+  file [openenclave/attestation/sgx/verifier.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/sgx/verifier.h).
+  - It returns a single hardcoded SGX verifier plugin for verification of
+  evidences in SGX ECDSA format.
+- Register a verifier plugin.
+  - Function `oe_result_t oe_register_verifier(oe_verifier_t* plugin, const void* config_data, size_t config_data_size)`, declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+  - The verifier plugin returned by `oe_sgx_plugin_verifier()` can be
+  registered with this function.
+  - See notes for the `oe_register_attester()` API function for explanation of
+  the `config_data` parameter.
+- Verify an evidence, optionally using a set of input endorsements and policies.
+  - Function `oe_result_t oe_verify_evidence(const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`,
+  declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+  - Upon successful verification, `oe_verify_evidence` returns a list of claims
+  in a dynamically allocated buffer. This list includes all the custom claims
+  input to the call to `get_evidence()` that generated the verified evidence.
+- Free a dynamically allocated claims buffer.
+  - Function `oe_result_t oe_free_claims_list(oe_claim_t* claims, size_t claims_length)`,
+  declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h)
+- Unregister a verifier plugin.
+  - Function `oe_unregister_verifier(oe_verifier_t* plugin)`,
+  declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+
+The single supported SGX evidence format UUID, OE_SGX_PLUGIN_UUID for SGX
+ECDSA format, is declared in header file
+[openenclave/internal/sgx/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/internal/sgx/plugin.h).
+
+In addition to the above plugin-based public API for attestation, the OE SDK
+also supports legacy API for generation and verification of SGX reports:
+`oe_get_report()` and `oe_verify_report()`.
+
+Areas of improvement in the existing attestation public API:
+- Attester and Verifier plugins are unnecessarily exposed to application
+software
+  - It's sufficient for application to use globally unique evidence format
+  UUID in generation and verification of evidences.
+  - Plugins are the artifact of the OE SDK attestation framework internal
+  design that application software does not need to care.
+- The API does not enable applications to discover which formats are supported
+for evidence generation or verification.
+- SGX specific functions are exposed as public API
+- The public and plugin API declarations are all contained in a
+single header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h).
+- For SGX, the globally unique UUIDs identify the evidence formats.
+There is no need of local / remote flag.
+
+## Proposed OE SDK V0.10 Public API
+
+Objectives: address the areas of improvement in the existing public API.
+
+- Separate public and plugin API declarations into different header files.
+- Only expose evidence formats for evidence generation and verification.
+There is no exposure of plugin design.
+- Remove TEE specific API elements, e.g. SGX-specific functions
+- Enable applications run-time discovery of supported formats for evidence
+generation and verification in
+[TEE-agnostic](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md#attester--verifier-security-model-and-tee-agnostic-design)
+manner.
+- Remove legacy artifacts that have become redundant, e.g. the SGX
+local / remote flags.
+
+Proposed Headers files:
+
+- Attester public API to be declared in `openenclave/attestation/attesters.h`
+- Verifier public API to be declared in `openenclave/attestation/verifiers.h`
+- SGX evidence format UUIDs to be declared in
+`openenclave/attestation/evidence_uuids_sgx.h`
+- Plugin API (helper functions and plugin entry points) to be declared in
+`openenclave/internal/plugin.h`
+
+Use cases for evidence generation:
+
+- Initialize attester environment.
+  - Function `oe_result_t oe_attester_initialize(void)`.
+  - Internally, the implementation enumerates and registers all
+  attester plugins configured for the platform and the calling
+  application.
+  - This function is idempotent and can be called multiple times without
+  adverse effect.
+- Select an evidence format from a supplied list of formats.
+  - Function `oe_result_t oe_attester_select_format(const oe_uuid_t* format_ids, size_t format_ids_length, oe_uuid_t** selected_format_id)`
+  - The input list is treated as an ordered list, with descending priority
+  order from left to right.
+  - The implementation selects the left-most evidence format from the input
+  list that is supported by one of the registered attester plugins. If there
+  is no match, `OE_NOT_FOUND` is returned.
+  - This function is defined in document
+  [[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md)
+- Get an evidence in an globally unique format, optionally along with a set of
+endorsements.
+  - Function `oe_result_t oe_get_evidence(const oe_uuid_t* evidence_format_uuid, const oe_claim_t* custom_claims, size_t custom_claims_length, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* evidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`.
+  - The legacy `flags` parameter in the OE SDK V0.9 API release is removed.
+  - Otherwise, this function is the same as in the OE SDK V0.9 release.
+- Free a dynamically allocated evidence buffer.
+  - Function `oe_result_t oe_free_evidence(uint8_t* evidence_buffer)`.
+  - The same definition as in the OE SDK V0.9 release.
+- Free a dynamically allocated endorsements buffer.
+  - Function `oe_result_t oe_free_endorsements(uint8_t* endorsements_buffer)`.
+  - The same definition as in the OE SDK V0.9 release.
+- Shutdown attester environment.
+  - Function `oe_result_t oe_attester_shutdown(void)`.
+  - Internally, the implementation unregisters all attester plugins, and
+  reclaims all resources allocated for them.
+  - This function is idempotent and can be called multiple times without
+  adverse effect.
+
+Use cases for evidence verification:
+
+- Initialize verifier environment.
+  - Function `oe_result_t oe_verifier_initialize(void)`.
+  - Internally, the implementation enumerates and registers all verifier plugins
+  configured for the platform and the calling application.
+  - This function is idempotent and can be called multiple times without
+  adverse effect.
+- Enumerate all evidence formats that can be verified.
+  - Function `oe_result_t oe_verifier_enumerate_formats(oe_uuid_t** format_list, size_t* format_list_length)`.
+  - The returned evidence format list is held in a dynamically-allocated buffer
+  - Every format in the returned list maps to at least one registered verifier
+  plugin.
+- Free a dynamically allocated format list buffer.
+  - Function `oe_result_t oe_verifier_free_formats(oe_uuid_t* format_list, size_t format_list_length)`.
+- Get the settings for verification of an evidence format.
+  - Function `oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id, uint8_t** settings, size_t* settings_size)`.
+  - For a given evidence format, get the settings for it in a dynamically
+  allocated buffer. This settings will be passed to an attester as the
+  `opt_params` parameter for evidence generation.
+  - Note: similar to the function `oe_get_verifier_settings()` defined in
+  document
+  [[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md).
+- Free a dynamically allocated format settings buffer.
+  - Function `oe_result_t oe_verifier_free_format_settings(uint8_t* settings, size_t settings_size)`
+  - As defined in document
+  [[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md)
+- Verify an evidence, optionally with a set of endorsements and policies.
+  - Function `oe_result_t oe_verify_evidence(const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
+  - The same definition as in the OE SDK V0.9 release.
+- Free a dynamically allocated claims list buffer.
+  - Function `oe_result_t oe_free_claims_list(oe_claim_t* claims, size_t claims_length)`.
+  - The same definition as in the OE SDK V0.9 release.
+- Shutdown verifier environment.
+  - Function `oe_result_t oe_verifier_shutdown(void)`.
+  - Internally, the implementation unregisters all verifier plugins, and
+  reclaims all resources allocated for them.
+  - This function is idempotent and can be called multiple times without
+  adverse effect.
+
+## Application Developer Experience
+
+The user experience scenario 1 described in document
+[[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md)
+is supported with minimum changes. In this scenario, a verifier provides
+a list of evidence formats that it accepts to an attester, and the attester
+selects from this list a single format to generate an evidence.
+
+- Verifier application:
+    - Upon startup, initializes its verifier environment, with
+    `oe_verifier_initialize()`.
+    - Enumerates the list of evidence formats that it verifies,
+    with `oe_verifier_enumerate_formats()`.
+    - Sends the accepted evidence format list to the attester application.
+- Attester application:
+    - Upon startup, initializes its attester environment, with
+    `oe_attester_initialize()`.
+    - Receives an evidence format list from the verifier application.
+    - Selects an evidence format from the received list, with
+    `oe_attester_select_format()`.
+    - Sends the selected evidence format to the verifier application,
+    for format-specific settings and custom claims.
+- Verifier application:
+    - Gets the settings for the received evidence format,
+    with `oe_verifier_get_format_settings()`.
+    - Generates additional parameters, e.g. nonce to ensure evidence
+    freshness, as custom claims.
+      - Note: this step is performed by the verifier application and does not
+      involve invocation of any OE SDK API. See section "Semantics of Custom
+      Claims and Optional Parameters" in document
+      [[Design Notes]](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md)
+      for discussion on custom claims vs optional parameters.
+    - Sends the evidence format settings and custom claims to the attester
+    application.
+- Attester application:
+    - Generates an evidence in the selected format, with the received
+    settings and custom claims as well as its own custom claims, with
+    `oe_get_evidence()`.
+    - Sends the evidence to the verifier application.
+- Verifier application:
+    - Verifies the received evidence, with `oe_verify_evidence()`.
+
+The user experience scenario 2 described in document
+[[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md)
+can't be supported. As explained in the discussion in
+[[Issue #2729]](https://github.com/openenclave/openenclave/issues/2729),
+this scenario does not fit the attester – verifier security model as described
+in document
+[[Design Notes]](https://github.com/openenclave/openenclave/pull/2801).
+
+# OE SDK Attestation Plugin API Proposal
+
+Note: terminologies "evidence format", "plugin", and "plugin library" are used
+extensively in this section. For clarification between them please refer to the
+[[Design Notes]](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md#evidence-format-plugin-and-plugin-library) document.
+
+## Existing OE SDK V0.9 Plugin API
+
+The OE SDK v0.9 experimental attestation plugin API has two components:
+the entry points provided by a plugin for invocation by the OE SDK attestation
+framework, and the helper functions provided by the OE SDK framework
+(as part of its public API) for
+invocation by plugin libraries. For attester and verifier plugins, these two
+components are slightly different.
+
+### Existing Attester Plugin API
+
+Below are the use cases for OE SDK framework to interact with an attester plugin.
+These use cases are supported by the attester plugin entry points defined in the
+`oe_attester_t` structure in header file
+[openenclave/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h)
+- Execute a function when the plugin is registered.
+  - Entry point `oe_result_t (*on_register)(oe_attestation_role_t* context, const void* config_data, size_t config_data_size)`
+  - The same entry point definition for both attester and verifier plugins.
+- Execute a function when the plugin is unregistered.
+  - Entry point `oe_result_t (*on_unregister)(oe_attestation_role_t* context)`
+  - The same entry point definition for both attester and verifier plugins.
+- Get an evidence in a specified format, optionally along with a set of
+endorsements.
+  - Entry point `oe_result_t (*get_evidence)(oe_attester_t* context, uint32_t flags, const oe_claim_t* custom_claims, size_t custom_claims_length, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* evidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`.
+- Free a dynamically allocated evidence buffer.
+  - Entry point `oe_result_t (*free_evidence)(oe_attester_t* context, uint8_t* evidence_buffer)`.
+- Free a dynamically allocated endorsements buffer.
+  - Entry point `oe_result_t (*free_endorsements)(oe_attester_t* context, uint8_t* endorsements_buffer)`.
+
+In the OE SDK V0.9 release, plugins are managed by application software via the
+OE SDK public API.
+
+For SGX, a single attester plugin is implemented for support of the SGX ECDSA
+evidence format identified by OE_SGX_PLUGIN_UUID. File
+[enclave/sgx/attester.c](https://github.com/openenclave/openenclave/blob/v0.9.x/enclave/sgx/attester.c)
+implements all the entry points of this plugin as well as an OE SDK public API
+function `oe_sgx_plugin_attester()`.
+
+To setup this plugin, the application software invokes public API function
+`oe_sgx_plugin_attester()` to get an `oe_attester_t` structure, and calls public
+API function `oe_register_attester()` with this structure.
+
+### Existing Verifier Plugin API
+
+Below are the use cases for the OE SDK framework to interact with a verifier plugin.
+These use cases are supported by the verifier plugin entry points defined in the
+`oe_verifier_t` structure in header file
+[openenclave/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h)
+- Execute a function when the plugin is registered.
+  - The same entry point definition as for attester plugins.
+- Execute a function when the plugin is unregistered.
+  - The same entry point definition as for attester plugins.
+- Verify an evidence, optionally using a set of input endorsements and policies.
+  - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
+- Free a dynamically allocated claims list buffer.
+  - Entry point `oe_result_t (*free_claims_list)(oe_verifier_t* context, oe_claim_t* claims, size_t claims_length)`.
+
+For SGX, a single verifier plugin is implemented for support of the SGX ECDSA
+evidence format identified by OE_SGX_PLUGIN_UUID. File
+[enclave/sgx/verifier.c](https://github.com/openenclave/openenclave/blob/v0.9.x/enclave/sgx/verifier.c)
+implements all the entry points of this plugin as well as an OE SDK public API
+function `oe_sgx_plugin_verifier()`.
+
+To setup this plugin, the application software invokes public API function
+`oe_sgx_plugin_verifier()` to get an `oe_verifier_t` structure, and calls public
+API function `oe_register_verifier()` with this structure.
+
+## Proposed OE SDK V0.10 Plugin API
+
+### Objectives
+
+- Keep plugin design internal between the OE SDK framework and plugin libraries.
+  - Initialization of plugin libraries is triggered upon application's OE SDK API
+  call to initialize its attester / verifier environment.
+  - Upon their initialization, attester / verifier plugin libraries enumerate and
+  register their supported plugins.
+  - The OE SDK framework provides helper functions for plugin registration. These
+  helper functions are not part of the OE SDK public API.
+- Remove legacy artifacts that are redundant, e.g. the SGX
+local / remote flags.
+- Streamline design for support of legacy SGX APIs `oe_get_report()` and
+`oe_verify_report()`.
+
+### Proposed Attester Plugin API
+
+Use cases for the OE SDK framework to interact with an attester plugin, supported
+by the attester plugin entry points defined in the `oe_attester_t` structure:
+- Execute a function when the plugin is registered.
+  - The same entry point definition as in the OE SDK V0.9 release.
+- Execute a function when the plugin is unregistered:
+  - The same entry point definition as in the OE SDK V0.9 release.
+- Get an evidence in an globally unique format, optionally along with a set of
+endorsements.
+  - Entry point `oe_result_t (*get_evidence)(oe_attester_t* context, const oe_claim_t* custom_claims, size_t custom_claims_length, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* evidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`.
+  - The legacy `flags` parameter in the OE SDK V0.9 release is removed.
+- Get a legacy-format report
+  - Entry point `oe_result_t (*get_report)(...)`
+  - Note: this entry point must be implemented if the OS SDK framework
+  needs to support its legacy public API `oe_get_report()` using this plugin.
+- Free a dynamically allocated evidence buffer.
+  - The same entry point definition as in the OE SDK V0.9 release.
+- Free a dynamically allocated endorsements buffer.
+  - The same entry point definition as in the OE SDK V0.9 release.
+
+The OE SDK framework exposes a set of helper functions for attester plugin
+libraries to interact with it. These helper functions are for plugin library
+developers, and not part of the public API for application developers.
+
+Below are the use cases for an attester plugin library to interact with the
+OE SDK framework:
+- Register an attester plugin.
+  - Helper function
+  `oe_result_t oe_register_attester(oe_attester_t* plugin, const void* config_data, size_t config_data_size)`.
+  - The same definition as in the OE SDK V0.9 release, except that this function
+  is not part of the public API.
+  - The optional `config_data`, e.g. for holding platform-specific configuration,
+  is provided by the plugin library, not by the application as in the V0.9
+  release.
+- Unregister an attester plugin.
+  - Helper function `oe_result_t oe_unregister_attester(oe_attester_t* plugin)`.
+  - The same definition as in the OE SDK V0.9 release, except that this function
+  is not part of the public API.
+
+In the OE SDK V0.10 release, attester plugins are managed internally between
+the OE SDK framework and plugin libraries, without exposing details to
+application software. As explained in the
+[[Design Notes]](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md#options-for-enclave-side-plugin-library-initialization)
+document, when the application calls `oe_attester_initialize()`, this
+function invokes the initialization functions of all linked attester plugin
+libraries. The initialization function of an attester plugin library enumerates
+all evidence formats supported by the library and registers their plugins with
+the OE SDK framework via helper function `oe_register_attester()`.
+
+### Proposed Verifier Plugin API
+
+Use cases for the OE SDK framework to interact with a verifier plugin, supported
+by the verifier plugin entry points defined in the `oe_verifier_t` structure:
+- Execute a function when the plugin is registered.
+  - The same entry point definition as for attester plugins.
+- Execute a function the plugin is unregistered.
+  - The same entry point definition as for attester plugins.
+- Get the setting for an evidence format supported by the verifier plugin.
+    - Entry point `oe_result_t (*get_format_settings)(oe_verifier_t* context, uint8_t** settings, size_t* settings_size)`.
+    - Note: this is a new entry point, not present in the OE SDK V0.9 release.
+- Verify an evidence, optionally using a set of input endorsements and policies.
+  - The same entry point definition as in the OE SDK V0.9 release.
+- Verify a legacy-format report
+  - Entry point `oe_result_t (*verify_report)(...)`
+  - Note: this entry point must be implemented if the OS SDK framework needs to
+  support the legacy public API `oe_verify_report()` using the plugin.
+- Free a dynamically allocated claims list buffer.
+  - The same entry point definition as in the OE SDK V0.9 release.
+
+Use cases for a verifier plugin to interact with the OE SDK framework:
+- Register a verifier plugin.
+  - Helper function
+  `oe_result_t oe_register_verifier(oe_verifier_t* plugin, const void* config_data, size_t config_data_size)`.
+  - The same definition as in the OE SDK V0.9 release, except that this function
+  is not part of the public API.
+- Unregister a verifier plugin.
+  - Helper function
+  `oe_result_t oe_unregister_verifier(oe_verifier_t* plugin)`.
+  - The same definition as in the OE SDK V0.9 release, except that this function
+  is not part of the public API.
+
+In the OE SDK V0.10 release, initialization of verifier plugin libraries is
+triggered with the application call to `oe_verifier_initialize()`.
+The initialization function of every linked library enumerates its supported
+evidence formats and registers their plugins with the OE SDK framework via
+helper function `oe_register_verifier()`.
+
+# Implementation of SGX Plugins
+
+## Existing OE SDK V0.9 Implementation
+
+Only one attester plugin and one verifier plugin are implemented,
+for a single SGX ECDSA evidence format identified by `OE_SGX_PLUGIN_UUID`.
+
+The attester plugin entry points are implemented in
+[enclave/sgx/attester.c](https://github.com/openenclave/openenclave/blob/v0.9.x/enclave/sgx/attester.c).
+The plugin entry points are returned in an `oe_attester_t` structure by the
+implementation of the public API function `oe_sgx_plugin_attester()`. This
+attester plugin implementation is linked to the OE SDK enclave-side static
+library.
+
+The verifier plugin entry points are implemented in
+[common/sgx/verifier.c](https://github.com/openenclave/openenclave/blob/v0.9.x/common/sgx/verifier.c).
+The plugin entry points are returned in an `oe_verifier_t` structure by the
+implementation of the public API function `oe_sgx_plugin_verifier()`. This
+verifier plugin implementation is linked to both the OE SDK enclave-side and host-side
+static libraries.
+
+## Proposed V0.10 Implementation
+
+The OE SDK V0.10 release will have enclave-side SGX attester plugins for
+generation of SGX evidence in local, ECDSA, and EPID formats. These formats
+are defined as:
+- `OE_SGX_LOCAL_ATTESTATION_PLUGIN_UUID`: for SGX local attestation.
+- `OE_SGX_ECDSA_P256_PLUGIN_UUID`: for SGX ECDSA-p256 evidence format
+  - Note: this is the same as existing `OE_SGX_PLUGIN_UUID`.
+- `OE_SGX_EPID_LINKABLE_PLUGIN_UUID`: for SGX linkable EPID evidence format.
+- `OE_SGX_EPID_UNLINKABLE_PLUGIN_UUID`: for SGX unlinkable EPID evidence format.
+
+These plugins will be implemented by a single set of plugin libraries,
+composed of:
+- One enclave-side SGX evidence generation plugin library.
+  - It implements the OE SDK public API function
+  `oe_attester_initialize()` for attester plugins enumeration and
+  registration, and `oe_attester_shutdown()`.
+- One host-side SGX evidence generation plugin library.
+  - It implements OCALLs for the enclave-side library to access
+  host-side services for SGX quote generation.
+
+The OE SDK V0.10 release will have enclave-side plugins for verification of
+SGX local and ECDSA evidences, and host-side plugins for verification of
+SGX ECDSA evidences. These plugins will be implemented by a single set of
+plugin libraries, composed of:
+- One enclave-side SGX evidence verification plugin library.
+  - It implements the enclave-side OE SDK public API function
+  `oe_verifier_initialize()` for enclave-side verifier plugins enumeration
+  and registration, and `oe_verifier_shutdown()`.
+- One host-side SGX evidence verification plugin library.
+  - It implements the host-side OE SDK public API function
+  `oe_verifier_initialize()` for host-side verifier plugins enumeration
+  and registration, and `oe_verifier_shutdown()`.
+  - It also implements OCALLs for the enclave-side library to access
+  host-side services for SGX quote verification.
+
+Note: host-side SGX plugin library implementation of the public API functions
+`oe_verifier_initialize()` and `oe_verifier_shutdown()` indicates that
+this library can't be linked to an verifier application along with
+other plugin libraries that implement the same public API functions.
+This limitation will be relaxed in a future release when a more sophisticated
+mechanism is adopted for plugin library initialization.
+More general discussion on evidence formats, plugins, plugin libraries
+and their initialization can be found in the "Notes on SGX Plugins Design"
+section of the [[Design Notes]](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md#notes-on-sgx-plugins-design)
+document.
+
+Verification of an SGX report for local attestation can only be performed by
+the enclave to which the SGX report is targeted. So no host-side plugin
+for SGX local attestation evidence can be supported.
+
+Verification of SGX EPID evidence (or quote) is not supported by the
+Intel SGX SDK. In existing SGX solutions, EPID quotes are sent from an
+attester enclave to a relying party, which forwards the EPID quotes to
+an Intel Attestation Service (IAS) for verification. There is no plan
+in the OE SDK V0.10 release to provide EPID evidence verifier plugin.
+
+The OE SDK has legacy API functions `oe_get_report()` and `oe_verify_report()`
+for generation and verification of SGX local and ECDSA reports.
+If support of these legacy API functions is required, then the plugins for
+SGX ECDSA and local evidence formats needs to implement the entry points
+`(*get_report)(...)` and `(*verify_report)(...)`, and the OE SDK framework needs
+to implement the legacy functions `oe_get_report()` and `oe_verify_report()` on
+these entry points respectively.
+
+# Authors
+
+- Name: Shanwei Cen
+    - email: shanwei.cen@intel.com
+    - github user name: shnwc
