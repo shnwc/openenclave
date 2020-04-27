@@ -139,10 +139,19 @@ function takes an input attestation key ID in its parameter list.
 With DCAP, the quote generation can be done either in-process,
 or out-of-process by working with a background service (called AESM) running
 on the same platform.
+  - For in-process quote generation, the process that calls the DCAP library
+  is required to run in an account added to a special group `sgx_prv`,
+  as documented in the DCAP library [readme](https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/README.md)
+  and the DCAP driver [readme](https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/driver/linux/README.md).
+    - Note: `sgx_prv` is an SGX provisioning access control mechanism implemented
+    in the SGX Linux driver since version V1.22, and in the
+    upstream SGX Linux driver.
+  - On the other hand, for out-of-process quote generation, only the AESM
+  service process account needs to be added to the special group `sgx_prv`.
 - The quote-ex library supports generation of SGX quotes in multiple formats
 (including ECDSA-p256 and EPID variations).
 With quote-ex, quote generation is always done out-of-process
-by working with a background service (called AESM) on the local platform.
+by working with an AESM service on the local platform.
 
 An SGX platform can have either the quote-ex library or the DCAP library,
 or both of them installed.
@@ -197,6 +206,18 @@ It first calls into the quote-ex library to check if the dependent background
 service is available.
 If so, the quote-ex library is used, otherwise the DCAP library is used.
 
+#### Proposal: Built-time Link with the quote-ex Library
+
+The proposal is to implement option 3, to support build-time link with only
+the quote-ex library for out-of-process SGX quote generation.
+
+Even for SGX ECDSA-p256 quote generation, the intention is to move away from
+in-process to out-of-process implementation. In-process implementation
+requires the DCAP library calling process to run in an account added to the
+special group `sgx_prv`. This added privilege brings with it additional
+security risks. The need of additional configuration for every
+quote-generating application processes also harms user experience.
+
 ### Support of SGX Evidence Formats Enumeration
 
 The SGX plugin code file `enclave/sgx/attester.c` implements the OE SDK API
@@ -249,7 +270,7 @@ the optional parameter to the key ID structure (if any), and invokes the
 quote-ex API entry point functions to get the QE target info or to generate
 the quote.
 
-# Alternates
+# Alternatives
 
 The SGX quote-ex library is the only option available to support SGX evidence
 formats other than ECDSA-p256.
