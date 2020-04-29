@@ -74,6 +74,11 @@ endorsements.
   `oe_get_report()` to indicate SGX local or remote attestation.
   It's redundant -- overlapping with the `evidence_format_uuid` parameter
   which identifies evidence formats with globally unique UUIDs.
+  - Note: please see the "Semantics of Custom Claims and Optional Parameters"
+  section of the
+  [[Design Notes]](https://github.com/openenclave/openenclave/pull/2801)
+  document for a discussion of the semantics
+  of the `custom_claims` and `opt_params` parameters.
 - Free a dynamically allocated evidence buffer.
   - Function `oe_result_t oe_free_evidence(uint8_t* evidence_buffer)`,
   declared in header file [openenclave/attestation/plugin.h](https://github.com/openenclave/openenclave/blob/v0.9.x/include/openenclave/attestation/plugin.h)
