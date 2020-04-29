@@ -27,9 +27,9 @@ releases.
 # OE SDK Attestation Public API Proposal
 
 Note: in the RATS model as described in the
-[[RATS Arch]](https://tools.ietf.org/html/draft-ietf-rats-architecture-02)
+[[RATS Arch]](https://tools.ietf.org/html/draft-ietf-rats-architecture)
 document, there are three roles: an Attester, a Verifier, and a Relying Party.
-The OE SDK attestation stack does not try to provide a complete implementation of
+The OE SDK attestation stack V0.10 does not try to provide a complete implementation of
 these roles, nor try to provide means for secure communication between them.
 The OE SDK attestation stack implements basic functionalities for evidence
 generation and verification, and exposes these functionalities to applications
@@ -37,7 +37,11 @@ via a set of public API functions. Application software can use this public API
 to implement complete RATS Attester and Verifier roles. The application software
 is also responsible to convert the evidence verification results into signed
 Attestation Results for consumption by a Relying Party role, if this role is
-not in the same security domain as the Verifier role.
+not in the same security domain as the Verifier role. But the proposed API
+readily supports applications functioning as a composite device implementing
+both the Verifier and Relying Party roles in the same security domain, since
+in this case the Attestation Results passed from the Verifier role to the
+Relying Party role do not need to be signed.
 
 ## Existing OE SDK V0.9 Public API
 
