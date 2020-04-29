@@ -27,10 +27,10 @@ and outside of data centers.
 
 The proposed extension only changes the internal implementation of the OE SDK
 attestation software stack. It does not impact the
-[OE SDK attestation API](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md).
+[OE SDK attestation API](https://github.com/openenclave/openenclave/pull/2949).
 With the integration of the quote-ex library, an attester application enclave's
-call to OE SDK API `oe_get_attester_plugins()` returns the list of all the
-SGX evidence attester plugins available to the calling enclave instance.
+call to OE SDK API `oe_attester_initialize()` triggers enumeration and
+registration of all supported attester plugins
 
 Integration of the quote-ex library depends on the installation of the
 Intel® SGX SDK quote-ex library package and its dependencies,
@@ -221,10 +221,10 @@ quote-generating application processes also harms user experience.
 ### Support of SGX Evidence Formats Enumeration
 
 The SGX plugin code file `enclave/sgx/attester.c` implements the OE SDK API
-`oe_get_attester_plugins()`.
+`oe_attester_initialize()`.
 The implementation enumerates all supported SGX evidence formats,
-creates a list of attester plugins for them, and returns the created list
-to the caller.
+and registers them with the OE SDK framework using its helper function
+`oe_register_attester()`.
 
 For SGX evidence formats enumeration, a new OCALL is added to interface
 definition file `common/sgx/sgx.edl` and implemented in the host-side
