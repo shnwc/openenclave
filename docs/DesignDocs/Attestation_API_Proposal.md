@@ -28,7 +28,7 @@ releases.
 
 Note: in the RATS model as described in the
 [[RATS Arch]](https://tools.ietf.org/html/draft-ietf-rats-architecture-02)
-document, there are three roles: an Attester, a Verifier, and a Replying Party.
+document, there are three roles: an Attester, a Verifier, and a Relying Party.
 The OE SDK attestation stack does not try to provide a complete implementation of
 these roles, nor try to provide means for secure communication between them.
 The OE SDK attestation stack implements basic functionalities for evidence
