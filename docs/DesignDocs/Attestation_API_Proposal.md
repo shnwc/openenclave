@@ -585,9 +585,9 @@ these entry points respectively.
 
 The Legacy functions `oe_get_report()` and `oe_verify_report()` should be
 implemented by the OE SDK framework to first call API functions
-`oe_attester_initializat()` and `oe_verifier_initialize()` respectively,
+`oe_attester_initialize()` and `oe_verifier_initialize()` respectively,
 since legacy applications don't call these API functions explicitly.
- As `oe_attester_initializat()` and `oe_verifier_initialize()` are
+ As `oe_attester_initialize()` and `oe_verifier_initialize()` are
  idempotent, there is no harm calling them multiple times. For SGX plugins,
  `oe_attester_shutdown()` and `oe_verifier_shutdown()` are NOP, so there
  is no need to call them upon application close.
