@@ -565,7 +565,7 @@ and their initialization can be found in the "Notes on SGX Plugins Design"
 section of the [[Design Notes]](https://github.com/shnwc/openenclave/blob/master/docs/DesignDocs/NotesOnAttestationAPI.md#notes-on-sgx-plugins-design)
 document.
 
-Verification of an SGX report for local attestation can only be performed by
+Verification of an SGX evidence for local attestation can only be performed by
 the enclave to which the SGX report is targeted. So no host-side plugin
 for SGX local attestation evidence can be supported.
 
