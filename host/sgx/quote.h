@@ -7,7 +7,7 @@
 #include <openenclave/bits/report.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
-#include <openenclave/internal/sgxtypes.h>
+#include <openenclave/bits/sgx/sgxtypes.h>
 
 OE_EXTERNC_BEGIN
 

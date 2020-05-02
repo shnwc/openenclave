@@ -52,8 +52,9 @@ oe_result_t oe_initialize_attester_plugins(void);
  * Release all resources allocated to attesters, in prep for application
  * shutdown.
  *
- * @retval OE_OK on success.
- * @retval other appropriate error code.
+ * @experimental
+ *
+ * @retval A pointer to the SGX attester. This function never fails.
  */
 oe_result_t oe_shutdown_attester_plugins(void);
 

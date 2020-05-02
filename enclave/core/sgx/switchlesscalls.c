@@ -7,7 +7,8 @@
 #include <openenclave/internal/atomic.h>
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/utils.h>
-#include "switchless_t.h"
+#include "handle_ecall.h"
+#include "platform_t.h"
 
 // The number of host thread workers. Initialized by host through ECALL
 static size_t _host_worker_count = 0;
@@ -18,7 +19,15 @@ static oe_host_worker_context_t* _host_worker_contexts = NULL;
 // Flag to denote if switchless calls have already been initialized.
 static bool _is_switchless_initialized = false;
 
-static bool _switchless_init_in_progress = false;
+/* Flag to denote if switchless init function is already in progress
+ * _switchless_init_in_progress is defined as int64_t and not bool because
+ * we use oe_atomic_compare_and_swap() to manipulate its value. It only takes
+ * int64_t* unlike the type-generic built-in atomics
+ * __atomic_load_n()/__atomic_save_n(), so if _switchless_init_in_progress is
+ * not defined as int64_t, we would need to type-pun through an incompatible
+ * type which results in undefined behavior per the C spec.
+ * */
+static int64_t _switchless_init_in_progress = 0;
 
 /*
 **==============================================================================
@@ -42,14 +51,14 @@ bool oe_is_switchless_initialized()
 /*
 **==============================================================================
 **
-** oe_init_context_switchless_ecall()
+** oe_sgx_init_context_switchless_ecall()
 **
 ** Initialize switchless calls infrastructure. This function call be called only
 ** once.
 **
 **==============================================================================
 */
-oe_result_t oe_init_context_switchless_ecall(
+oe_result_t oe_sgx_init_context_switchless_ecall(
     oe_host_worker_context_t* host_worker_contexts,
     uint64_t num_host_workers)
 {
@@ -57,9 +66,7 @@ oe_result_t oe_init_context_switchless_ecall(
     uint64_t contexts_size = 0;
 
     if (!oe_atomic_compare_and_swap(
-            (volatile int64_t*)&_switchless_init_in_progress,
-            (int64_t) false,
-            (int64_t) true))
+            &_switchless_init_in_progress, (int64_t) false, (int64_t) true))
     {
         OE_RAISE(OE_BUSY);
     }
@@ -134,7 +141,7 @@ oe_result_t oe_post_switchless_ocall(oe_call_host_function_args_t* args)
                 // call. Determine if it needs to be woken up or not.
                 //
                 // If event is 0, it means that it has gone to sleep. Wake it by
-                // making an ocall (oe_wake_switchless_worker_ocall).
+                // making an ocall (oe_sgx_wake_switchless_worker_ocall).
                 // Note: it is important to use an atomic cas operation to set
                 // the value to 1 before making the ocall. Setting the value to
                 // 1 prevents the host worker from simulataneously going to
@@ -160,7 +167,7 @@ oe_result_t oe_post_switchless_ocall(oe_call_host_function_args_t* args)
                     // The pevious value of the event was 0 which means that the
                     // worker was previously sleeping.
                     // Wake it via an ocall.
-                    oe_wake_switchless_worker_ocall(
+                    oe_sgx_wake_switchless_worker_ocall(
                         &_host_worker_contexts[tries]);
                 }
 
@@ -199,4 +206,57 @@ oe_result_t oe_switchless_call_host_function(
         output_buffer_size,
         output_bytes_written,
         true /* switchless */);
+}
+
+void oe_sgx_switchless_enclave_worker_thread_ecall(
+    oe_enclave_worker_context_t* context)
+{
+    // Ensure that the context lies in host memory.
+    if (!oe_is_outside_enclave(context, sizeof(*context)))
+        return;
+
+    // Prevent speculative execution.
+    oe_lfence();
+
+    const uint64_t spin_count_threshold = context->spin_count_threshold;
+    while (!context->is_stopping)
+    {
+        volatile oe_call_enclave_function_args_t* local_call_arg = NULL;
+        if ((local_call_arg = context->call_arg) != NULL)
+        {
+            // Handle the switchless call, but do not clear the slot yet. Since
+            // the slot is not empty, any new incoming switchless call request
+            // will be scheduled in another available work thread and get
+            // handled immediately.
+            oe_handle_call_enclave_function((uint64_t)local_call_arg);
+
+            // After handling the switchless call, mark this worker thread
+            // as free by clearing the slot.
+            OE_ATOMIC_MEMORY_BARRIER_RELEASE();
+            context->call_arg = NULL;
+
+            // Reset spin count for next message.
+            context->total_spin_count += context->spin_count;
+            context->spin_count = 0;
+        }
+        else
+        {
+            // If there is no message, increment spin count until threshold is
+            // reached.
+            if (++context->spin_count >= spin_count_threshold)
+            {
+                // Reset spin count and return to host to sleep.
+                context->total_spin_count += context->spin_count;
+                context->spin_count = 0;
+
+                // Make an ocall to sleep until messages arrive.
+                oe_sgx_sleep_switchless_worker_ocall(context);
+            }
+
+            // In Release builds, the following pause has been observed to be
+            // essential. Without it, the worker thread seems to hog the CPU,
+            // preventing host threads from posting switchless ecall messages.
+            asm volatile("pause");
+        }
+    }
 }

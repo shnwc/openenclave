@@ -2,7 +2,8 @@
 
 ## Platform requirements
 
-- Ubuntu 16.04-LTS 64-bits
+- Ubuntu 16.04-LTS 64-bits or Ubuntu 18.04-LTS 64-bits.
+- For RHEL8 support, please see [ExperimentalSupportRHEL8.md](ExperimentalSupportRHEL8.md).
 - SGX1 capable system with Flexible Launch Control support. Most likely this will be an Intel Coffeelake system.
 
 ## Clone Open Enclave SDK repo from GitHub
@@ -39,6 +40,9 @@ If you are not running in an ACC VM, you should instead run:
 ansible-playbook scripts/ansible/oe-contributors-setup.yml
 ```
 
+To support LVI mitigation, the command creates
+`/usr/local/lvi-mitigation/bin` that includes the dependencies.
+
 NOTE: The Ansible playbook commands from above will try and execute tasks with `sudo` rights. Make sure that the user running the playbooks has `sudo` rights, and if it uses a `sudo` password add the following extra parameter `--ask-become-pass`.
 
 ## Build
@@ -61,7 +65,18 @@ or
 cmake -G "Ninja" ..
 ninja
 ```
-Refer to the [Advanced Build Information](AdvancedBuildInfo.md) documentation for further information.
+
+To build with LVI mitigation, run
+
+```bash
+cmake -G "Ninja" .. \
+-DLVI_MITIGATION=ControlFlow \
+-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin
+ninja
+```
+
+Refer to [Advanced Build Information](AdvancedBuildInfo.md) and
+[LVI Mitigation](AdvancedBuildInfo.md#lvi-mitigation) documentation for further information.
 
 ## Run unit tests
 
@@ -95,6 +110,8 @@ Test project /home/youradminusername/openenclave/build
 100% tests passed, 0 tests failed out of 123
 
 Total Test time (real) =  83.61 sec
+```
+
 A clean pass of the above unit tests is an indication that your Open Enclave setup was successful.
 
 You can start playing with the Open Enclave samples after following the instructions in the "Install" section below to configure samples for building,

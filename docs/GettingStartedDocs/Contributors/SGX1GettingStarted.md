@@ -2,9 +2,8 @@
 
 ## Platform requirements
 
-- Ubuntu 16.04-LTS 64-bits
-- Ubuntu 18.04-LTS 64-bits
-- Red Hat Enterprise Linux 8 64-bits
+- Ubuntu 16.04-LTS 64-bits or Ubuntu 18.04-LTS 64-bits
+- For RHEL8 support, please see [ExperimentalSupportRHEL8.md](ExperimentalSupportRHEL8.md).
 - SGX1 capable system. Most likely this will be an Intel SkyLake or Intel KabyLake system
 
 ## Clone Open Enclave SDK repo from GitHub
@@ -34,6 +33,9 @@ Run the following command from the root of the source tree:
 ansible-playbook scripts/ansible/oe-contributors-setup-sgx1.yml
 ```
 
+To support LVI mitigation, the command creates
+`/usr/local/lvi-mitigation/bin` that includes the dependencies.
+
 NOTE: The Ansible playbook command from above will try and execute tasks with `sudo` rights. Make sure that the user running the playbook has `sudo` rights, and if it uses a `sudo` password add the following extra parameter `--ask-become-pass`.
 
 ## Build
@@ -52,7 +54,17 @@ cmake -DHAS_QUOTE_PROVIDER=OFF ..
 make
 ```
 
-Refer to the [Advanced Build Information](AdvancedBuildInfo.md) documentation for further information.
+To build with LVI mitigation, run
+
+```bash
+cmake -DHAS_QUOTE_PROVIDER=OFF .. \
+-DLVI_MITIGATION=ControlFlow \
+-DLVI_MITIGATION_BINDIR=/usr/local/lvi-mitigation/bin
+make
+```
+
+Refer to [Advanced Build Information](AdvancedBuildInfo.md) and
+[LVI Mitigation](AdvancedBuildInfo.md#lvi-mitigation) documentation for further information.
 
 ## Run unit tests
 
