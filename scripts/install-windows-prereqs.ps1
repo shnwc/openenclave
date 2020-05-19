@@ -12,6 +12,8 @@ Param(
     # We skip the hash check for the vs_buildtools.exe file because it is regularly updated without a change to the URL, unfortunately.
     [string]$VSBuildToolsURL = 'https://aka.ms/vs/15/release/vs_buildtools.exe',
     [string]$VSBuildToolsHash = '',
+    [string]$OCamlURL = 'https://www.ocamlpro.com/pub/ocpwin/ocpwin-builds/ocpwin64/20160113/ocpwin64-20160113-4.02.1+ocp1-mingw64.zip',
+    [string]$OCamlHash = '369F900F7CDA543ABF674520ED6004CC75008E10BEED0D34845E8A42866D0F3A',
     [string]$NodeURL = 'https://nodejs.org/dist/v10.16.3/node-v10.16.3-x64.msi',
     [string]$NodeHash = 'F68B75EEA46232ADB8FD38126C977DC244166D29E7C6CD2DF930B460C38590A9',
     [string]$Clang7URL = 'http://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe',
@@ -34,6 +36,8 @@ Param(
     [string]$Python3ZipHash = 'FB65E5CD595AD01049F73B47BC0EE23FD03F0CBADC56CB318990CEE83B37761B',
     [string]$NSISURL = 'https://oejenkins.blob.core.windows.net/oejenkins/nsis-3.05-setup.exe',
     [string]$NSISHash = '1A3CC9401667547B9B9327A177B13485F7C59C2303D4B6183E7BC9E6C8D6BFDB',
+    [string]$GetPipURL = 'https://bootstrap.pypa.io/3.4/get-pip.py',
+    [string]$GetPipHash = '564FABC2FBABD9085A71F4A5E43DBF06D5CCEA9AB833E260F30EE38E8CE63A69',
     [Parameter(mandatory=$true)][string]$InstallPath,
     [Parameter(mandatory=$true)][ValidateSet("SGX1FLC", "SGX1", "SGX1FLC-NoDriver", "SGX1-NoDriver")][string]$LaunchConfiguration,
     [Parameter(mandatory=$true)][ValidateSet("None", "Azure")][string]$DCAPClientType
@@ -59,6 +63,11 @@ $PACKAGES = @{
         "url" = $VSBuildToolsURL
         "hash" = $VSBuildToolsHash
         "local_file" = Join-Path $PACKAGES_DIRECTORY "vs_buildtools.exe"
+    }
+    "ocaml" = @{
+        "url" = $OCamlURL
+        "hash" = $OCamlHash
+        "local_file" = Join-Path $PACKAGES_DIRECTORY "ocpwin64.zip"
     }
     "node" = @{
         "url" = $NodeURL
@@ -114,6 +123,11 @@ $PACKAGES = @{
         "url" = $Python3ZipURL
         "hash" = $Python3ZipHash
         "local_file" = Join-Path $PACKAGES_DIRECTORY "Python3.zip"
+    }
+    "get-pip" = @{
+        "url" = $GetPipURL
+        "hash" = $GetPipHash
+        "local_file" = Join-Path $PACKAGES_DIRECTORY "get-pip.py"
     }
     "nsis" = @{
         "url" = $NSISURL
@@ -359,6 +373,21 @@ function Install-Python3 {
     New-Directory -Path $installDir -RemoveExisting
     Move-Item -Path "$tempInstallDir\*" -Destination $installDir
     Add-ToSystemPath -Path $installDir
+
+    Start-ExecuteWithRetry -ScriptBlock {
+        # Install PIP
+        python $PACKAGES["get-pip"]["local_file"]
+        $Scripts = Join-Path $installDir "Scripts"
+        Add-ToSystemPath -Path $Scripts
+
+        # Enable site packages so that PIP will run, by uncommenting out 'import site'
+        $configFile = Join-Path $installdir "python37._pth"
+        Set-Content -Path $configFile -Value "python37.zip`n.`n`nimport site"
+    } -MaxRetryCount $RetryCount -RetryInterval 3 -RetryMessage "Failed to install PIP. Retrying"
+
+    Start-ExecuteWithRetry -ScriptBlock {
+        pip install cmake_format
+    } -RetryMessage "Failed to install cmake_format. Retrying"
 }
 
 function Install-Git {
@@ -427,6 +456,19 @@ function Install-VisualStudio {
                 -ArgumentList $installerArguments `
                 -EnvironmentPath @("${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build", `
                                    "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools\Common7\Tools")
+}
+
+function Install-OCaml {
+    $installDir = Join-Path $env:ProgramFiles "OCaml"
+    $tmpDir = Join-Path $PACKAGES_DIRECTORY "ocpwin64"
+    if(Test-Path -Path $tmpDir) {
+        Remove-Item -Recurse -Force -Path $tmpDir
+    }
+    Install-ZipTool -ZipPath $PACKAGES["ocaml"]["local_file"] `
+                    -InstallDirectory $tmpDir `
+                    -EnvironmentPath @("$installDir\bin")
+    New-Directory -Path $installDir -RemoveExisting
+    Move-Item -Path "$tmpDir\*\*" -Destination $installDir
 }
 
 function Install-Node {
@@ -678,6 +720,7 @@ try {
     Start-LocalPackagesDownload
 
     Install-7Zip
+    Install-OCaml
     Install-Nuget
     Install-Python3
     Install-VisualStudio

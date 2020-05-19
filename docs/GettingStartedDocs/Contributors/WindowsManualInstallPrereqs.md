@@ -19,6 +19,7 @@
 - [Python 3](https://www.python.org/downloads/windows/)
 - [ShellCheck](https://oejenkins.blob.core.windows.net/oejenkins/shellcheck-v0.7.0.zip)
 - [OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html)
+- [cmake format](https://github.com/cheshirekow/cmake_format)
 
 ## Prerequisites specific to SGX support on your system
 
@@ -86,8 +87,9 @@ C:\Users\test\AppData\Roaming\npm\esy
 ## Python 3
 
 Install [Python 3 for Windows](https://www.python.org/downloads/windows/) and ensure that python.exe is available in your PATH.
+Make sure the checkbox for PIP is checked when installing.
 
-Python 3 is used as part of the mbedtls tests.
+Python 3 is used as part of the mbedtls tests and for cmake-format.
 
 ## ShellCheck
 
@@ -99,3 +101,18 @@ Inside it there is a shellcheck-v0.7.0.exe which must be copied to a directory i
 ## OpenSSL
 
 Download and install the latest [Win64 OpenSSL 1.1.1](https://slproweb.com/products/Win32OpenSSL.html). Do not choose the light version; for example, use Win64OpenSSL-1_1_1g.exe, not Win64OpenSSL_Light-1_1_1g.exe.
+
+## cmake format
+
+Install `cmake-format` as follows.
+
+```cmd
+pip install cmake_format
+```
+
+Open up a command prompt and ensure that `cmake-format` is added to the `PATH`.
+
+```cmd
+C:\Users\test> where cmake-format
+C:\Users\test\AppData\Local\Programs\Python\Python37-32\Scripts\cmake-format.exe
+```
