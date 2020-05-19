@@ -104,7 +104,7 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         *format_ids_size = sizeof(oe_uuid_t);
         OE_RAISE(OE_BUFFER_TOO_SMALL);
     }
-    oe_uuid_t tmp_uuid = {OE_SGX_ECDSA_P256_PLUGIN_UUID};
+    oe_uuid_t tmp_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
     memcpy(format_ids, &tmp_uuid, sizeof(oe_uuid_t));
     *format_ids_size = sizeof(oe_uuid_t);
 

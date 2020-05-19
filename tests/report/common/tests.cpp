@@ -1151,7 +1151,7 @@ void test_local_verify_report()
     GetSGXTargetInfo((sgx_target_info_t*)target_info);
 
     // 1. Report with no custom report data.
-    OE_TEST(
+    OE_TEST_CODE(
         GetReport_v2(
             0,
             NULL,
@@ -1159,13 +1159,14 @@ void test_local_verify_report()
             target_info,
             target_info_size,
             &report_ptr,
-            &report_size) == OE_OK);
-    OE_TEST(VerifyReport(report_ptr, report_size, NULL) == OE_OK);
+            &report_size),
+        OE_OK);
+    OE_TEST_CODE(VerifyReport(report_ptr, report_size, NULL), OE_OK);
     oe_free_report(report_ptr);
 
 // 2. Report with full custom report data.
 #ifdef OE_BUILD_ENCLAVE
-    OE_TEST(
+    OE_TEST_CODE(
         GetReport_v2(
             0,
             report_data,
@@ -1173,12 +1174,13 @@ void test_local_verify_report()
             target_info,
             target_info_size,
             &report_ptr,
-            &report_size) == OE_OK);
-    OE_TEST(VerifyReport(report_ptr, report_size, NULL) == OE_OK);
+            &report_size),
+        OE_OK);
+    OE_TEST_CODE(VerifyReport(report_ptr, report_size, NULL), OE_OK);
     oe_free_report(report_ptr);
 
     // 3. Report with partial custom report data.
-    OE_TEST(
+    OE_TEST_CODE(
         GetReport_v2(
             0,
             report_data,
@@ -1186,8 +1188,9 @@ void test_local_verify_report()
             target_info,
             target_info_size,
             &report_ptr,
-            &report_size) == OE_OK);
-    OE_TEST(VerifyReport(report_ptr, report_size, NULL) == OE_OK);
+            &report_size),
+        OE_OK);
+    OE_TEST_CODE(VerifyReport(report_ptr, report_size, NULL), OE_OK);
     oe_free_report(report_ptr);
 #endif
 
@@ -1197,7 +1200,7 @@ void test_local_verify_report()
     tampered_target_info = (sgx_target_info_t*)target_info;
     tampered_target_info->mrenclave[0]++;
 
-    OE_TEST(
+    OE_TEST_CODE(
         GetReport_v2(
             0,
             NULL,
@@ -1205,9 +1208,10 @@ void test_local_verify_report()
             target_info,
             target_info_size,
             &report_ptr,
-            &report_size) == OE_OK);
-    OE_TEST(
-        VerifyReport(report_ptr, report_size, NULL) ==
+            &report_size),
+        OE_OK);
+    OE_TEST_CODE(
+        VerifyReport(report_ptr, report_size, NULL),
         OE_VERIFY_FAILED_AES_CMAC_MISMATCH);
     oe_free_report(report_ptr);
 }
@@ -1217,7 +1221,7 @@ void test_remote_verify_report()
     uint8_t* report_ptr;
     size_t report_size;
 
-#if OE_BUILD_ENCLAVE
+#ifdef OE_BUILD_ENCLAVE
     uint8_t report_data[sizeof(sgx_report_data_t)];
     size_t report_data_size = sizeof(report_data);
 
@@ -1237,15 +1241,15 @@ void test_remote_verify_report()
      * On host side, report data is not a valid parameter
      */
     {
-        OE_TEST(
-            GetReport_v2(flags, NULL, 0, NULL, 0, &report_ptr, &report_size) ==
+        OE_TEST_CODE(
+            GetReport_v2(flags, NULL, 0, NULL, 0, &report_ptr, &report_size),
             OE_OK);
-        OE_TEST(VerifyReport(report_ptr, report_size, NULL) == OE_OK);
+        OE_TEST_CODE(VerifyReport(report_ptr, report_size, NULL), OE_OK);
         oe_free_report(report_ptr);
 
-#if OE_BUILD_ENCLAVE
+#ifdef OE_BUILD_ENCLAVE
         report_data_size = 16;
-        OE_TEST(
+        OE_TEST_CODE(
             GetReport_v2(
                 flags,
                 report_data,
@@ -1253,8 +1257,9 @@ void test_remote_verify_report()
                 NULL,
                 0,
                 &report_ptr,
-                &report_size) == OE_OK);
-        OE_TEST(VerifyReport(report_ptr, report_size, NULL) == OE_OK);
+                &report_size),
+            OE_OK);
+        OE_TEST_CODE(VerifyReport(report_ptr, report_size, NULL), OE_OK);
         oe_free_report(report_ptr);
 #endif
     }

@@ -23,14 +23,8 @@ void oe_load_quote_provider()
     if (provider.handle == 0)
     {
         OE_TRACE_INFO("oe_load_quote_provider libdcap_quoteprov.so\n");
-        // On non-Azure platform, different QPL libs are needed:
-        // one for OE SDK implementation, and another for DCAP
         provider.handle =
-            dlopen("libdcap_quoteprov_azure.so", RTLD_LAZY | RTLD_LOCAL);
-        // On Azure VM, the same QPL is made to work with both OE SDK and DCAP
-        if (provider.handle == 0)
-            provider.handle =
-                dlopen("libdcap_quoteprov.so", RTLD_LAZY | RTLD_LOCAL);
+            dlopen("libdcap_quoteprov.so", RTLD_LAZY | RTLD_LOCAL);
         if (provider.handle != 0)
         {
             sgx_ql_set_logging_function_t set_log_fcn =

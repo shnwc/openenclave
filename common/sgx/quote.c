@@ -7,14 +7,12 @@
 #include <openenclave/internal/crypto/sha.h>
 #include <openenclave/internal/datetime.h>
 #include <openenclave/internal/raise.h>
-#include <openenclave/internal/sgxtypes.h>
 #include <openenclave/internal/trace.h>
 #include <openenclave/internal/utils.h>
 #include "../common.h"
 #include "collateral.h"
 #include "endorsements.h"
 #include "qeidentity.h"
-#include "revocation.h"
 
 #include <time.h>
 

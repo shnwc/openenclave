@@ -65,6 +65,12 @@ oe_result_t sgx_get_supported_attester_format_ids(
     void* format_ids,
     size_t* format_ids_size);
 
+oe_result_t oe_verify_report_internal(
+    oe_enclave_t* enclave,
+    const uint8_t* report,
+    size_t report_size,
+    oe_report_t* parsed_report);
+
 OE_EXTERNC_END
 
 #endif /* _OE_HOST_QUOTE_H */

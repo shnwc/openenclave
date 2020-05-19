@@ -168,7 +168,7 @@ typedef struct _oe_claim
 #define OE_CLAIM_UNIQUE_ID "unique_id"
 #define OE_CLAIM_SIGNER_ID "signer_id"
 #define OE_CLAIM_PRODUCT_ID "product_id"
-#define OE_CLAIM_PLUGIN_UUID "plugin_uuid"
+#define OE_CLAIM_FORMAT_UUID "format_uuid"
 #define OE_REQUIRED_CLAIMS_COUNT 7
 extern const char* OE_REQUIRED_CLAIMS[OE_REQUIRED_CLAIMS_COUNT];
 

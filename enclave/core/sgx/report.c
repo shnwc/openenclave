@@ -13,7 +13,6 @@
 #include <openenclave/internal/safecrt.h>
 #include <openenclave/internal/safemath.h>
 #include <openenclave/internal/sgx/plugin.h>
-#include <openenclave/internal/sgxtypes.h>
 #include <openenclave/internal/utils.h>
 #include "platform_t.h"
 
@@ -324,34 +323,6 @@ done:
     return result;
 }
 
-static oe_uuid_t _sgx_ecdsa_uuid = {OE_SGX_ECDSA_P256_PLUGIN_UUID};
-static oe_uuid_t _sgx_local_uuid = {OE_SGX_LOCAL_ATTESTATION_PLUGIN_UUID};
-
-oe_result_t oe_get_report_v2(
-    uint32_t flags,
-    const uint8_t* report_data,
-    size_t report_data_size,
-    const void* opt_params,
-    size_t opt_params_size,
-    uint8_t** report_buffer,
-    size_t* report_buffer_size)
-{
-    oe_uuid_t* format_id;
-    if (flags == OE_REPORT_TYPE_SGX_LOCAL)
-        format_id = &_sgx_local_uuid;
-    else
-        format_id = &_sgx_ecdsa_uuid;
-    return oe_get_report_v2_internal(
-        flags,
-        format_id,
-        report_data,
-        report_data_size,
-        opt_params,
-        opt_params_size,
-        report_buffer,
-        report_buffer_size);
-}
-
 oe_result_t oe_get_report_v2_internal(
     uint32_t flags,
     const oe_uuid_t* format_id,
@@ -421,11 +392,6 @@ done:
         oe_free(tmp_buffer);
 
     return result;
-}
-
-void oe_free_report(uint8_t* report_buffer)
-{
-    oe_free(report_buffer);
 }
 
 oe_result_t oe_get_sgx_report_ecall(

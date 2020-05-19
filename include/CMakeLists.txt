@@ -13,9 +13,8 @@ install(DIRECTORY openenclave/edger8r DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/op
 install(FILES openenclave/enclave.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/)
 install(FILES openenclave/host.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/)
 install(FILES openenclave/host_verify.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/ COMPONENT OEHOSTVERIFY)
-install(FILES openenclave/attestation/plugin.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/ COMPONENT OEHOSTVERIFY)
-install(FILES openenclave/attestation/sgx/attester.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/)
-install(FILES openenclave/attestation/sgx/verifier.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/ COMPONENT OEHOSTVERIFY)
+install(FILES openenclave/attestation/attester.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/attestation)
+install(FILES openenclave/attestation/verifier.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/openenclave/attestation COMPONENT OEHOSTVERIFY)
 install(TARGETS oe_includes EXPORT openenclave-targets)
 
 # Install parts of oelibc needed by edger8r-generated code

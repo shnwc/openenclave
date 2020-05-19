@@ -15,21 +15,21 @@
             0x25, 0xd2, 0xfb, 0xcd, 0x8c                                  \
     }
 
-#define OE_SGX_ECDSA_P256_PLUGIN_UUID OE_SGX_PLUGIN_UUID
+#define OE_FORMAT_UUID_SGX_ECDSA_P256 OE_SGX_PLUGIN_UUID
 
-#define OE_SGX_LOCAL_ATTESTATION_PLUGIN_UUID                              \
+#define OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION                              \
     {                                                                     \
         0x09, 0x26, 0x8c, 0x33, 0x6e, 0x0b, 0x45, 0xe5, 0x8a, 0x27, 0x15, \
             0x64, 0x4d, 0x0e, 0xf8, 0x9a                                  \
     }
 
-#define OE_SGX_EPID_LINKABLE_PLUGIN_UUID                                  \
+#define OE_FORMAT_UUID_SGX_EPID_LINKABLE                                  \
     {                                                                     \
         0xf2, 0x28, 0xaa, 0x3f, 0xde, 0x4d, 0x49, 0xd3, 0x88, 0x4c, 0xb2, \
             0xaa, 0x87, 0xa5, 0x0d, 0xa6                                  \
     }
 
-#define OE_SGX_EPID_UNLINKABLE_PLUGIN_UUID                                \
+#define OE_FORMAT_UUID_SGX_EPID_UNLINKABLE                                \
     {                                                                     \
         0x5c, 0x35, 0xd2, 0x90, 0xa2, 0xc2, 0x4c, 0x55, 0x9e, 0x13, 0x5a, \
             0xd7, 0x32, 0x74, 0x6c, 0x88                                  \

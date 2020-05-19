@@ -195,14 +195,14 @@ enclave-side verifier plugins.
 1. Every enclave-side plugin library implements the same OE SDK API
 `oe_attester_initialize()`.
 
-    With this option, a build of an application enclave project can only link
+    With this option, a build of an application enclave project can only be linked
     with a single attestation plugin library, to avoid function name collision.
 
 2. Build-time macro to convert from TEE-agnostic API to TEE-specific
 implementation.
 
     With this option, application enclaves still call TEE-agnostic OE SDK API
-    `oe_get_attester_plugins()`.
+    `oe_attester_initialize()`.
     But the OE SDK provides a macro definition of this function calling
     the TEE- and library-specific initialization functions of linked
     enclave-side plugin libraries.
@@ -211,7 +211,7 @@ implementation.
     enclave-side plugin libraries in a single application enclave build
     configuration.
     The OE SDK build environment is required to provide a proper
-    `oe_get_attester_plugins()` macro definition for every configuration
+    `oe_attester_initialize()` macro definition for every configuration
     it supports.
 
 3. Build-time manifest to list plugin libraries and their
@@ -249,7 +249,7 @@ functions with the OE SDK framework.
     initialization functions of these libraries when they are registered
     upon load.
 
-    Later, when the application enclave calls `oe_get_attester_plugins()`,
+    Later, when the application enclave calls `oe_attester_initialize()`,
     the implementation of this function in the OE SDK framework calls all the
     registered plugin library initialization functions in the order of their
     priorities, to initialize all plugin libraries and to enumerate all
@@ -257,7 +257,7 @@ functions with the OE SDK framework.
 
     This option allows the OE SDK framework to link with multiple plugin libraries.
     It even has the potential to support dynamic link / load of enclave-side
-    plugin libraries, as long as the function `oe_get_attester_plugins()` is
+    plugin libraries, as long as the function `oe_attester_initialize()` is
     implemented as idempotent, so that it can be invoked multiple times,
     each time after a new plugin library is loaded.
 
@@ -287,13 +287,13 @@ initialization, with some differences as discussed below.
 implementation.
 
     With this option, OE SDK host applications still call TEE-agnostic
-    OE SDK API `oe_get_verifier_plugins()`.
+    OE SDK API `oe_verifier_initialize()`.
     But the OE SDK provides a macro definition of this function calling
     the TEE- and library-specific initialization functions of linked
     host-side plugin libraries.
 
     The OE SDK build environment is required to provide a
-    `oe_get_verifier_plugins()` macro definition for every configuration
+    `oe_verifier_initialize()` macro definition for every configuration
     it supports.
 
 3. Load-time manifest to list plugin libraries and their initialization
@@ -352,6 +352,4 @@ there is no change in the public API and the plugins implementation.
 
 # Authors
 
-- Name: Shanwei Cen
-    - email: shanwei.cen@intel.com
-    - github user name: shnwc
+- Shanwei Cen (@shnwc)

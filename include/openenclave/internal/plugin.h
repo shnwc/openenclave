@@ -2,16 +2,21 @@
 // Licensed under the MIT License.
 
 /**
- * @file attestation_plugin.h
+ * @file plugin.h
  *
- * This file defines the programming interface for developing an
- * attestation plugin for supporting alternative evidence formats.
+ * This file defines the programming interface for developing
+ * attester or verifier plugins for supporting alternative evidence formats.
  *
  */
 
 #ifndef _OE_ATTESTATION_PLUGIN_H
 #define _OE_ATTESTATION_PLUGIN_H
 
+#ifdef OE_BUILD_ENCLAVE
+// The attester related definitions are only available for the enclave.
+#include <openenclave/attestation/attester.h>
+#endif
+#include <openenclave/attestation/verifier.h>
 #include <openenclave/bits/report.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
@@ -63,6 +68,8 @@ struct _oe_attestation_role
     oe_result_t (*on_unregister)(oe_attestation_role_t* context);
 };
 
+#ifdef OE_BUILD_ENCLAVE
+
 /**
  * The attester attestion role. The attester is reponsible for generating the
  * attestation evidence and must implement the functions below.
@@ -86,9 +93,6 @@ struct _oe_attester
      * @experimental
      *
      * @param[in] context A pointer to the attester plugin struct.
-     * @param[in] flags Specifying default value (0) generates evidence for
-     * local attestation. Specifying OE_EVIDENCE_FLAGS_REMOTE_ATTESTATION
-     * generates evidence for remote attestation.
      * @param[in] custom_claims The optional custom claims list.
      * @param[in] custom_claims_length The number of custom claims.
      * @param[in] opt_params The optional plugin-specific input parameters.
@@ -106,7 +110,6 @@ struct _oe_attester
      */
     oe_result_t (*get_evidence)(
         oe_attester_t* context,
-        uint32_t flags,
         const oe_claim_t* custom_claims,
         size_t custom_claims_length,
         const void* opt_params,
@@ -115,6 +118,46 @@ struct _oe_attester
         size_t* evidence_buffer_size,
         uint8_t** endorsements_buffer,
         size_t* endorsements_buffer_size);
+
+    /**
+     * Creates a legacy report to be used in local or remote attestation.
+     * The report shall contain the data given by the **report_data** parameter.
+     * This entry point is for the OE SDK framework to implement legacy API
+     * oe_get_report_v2().
+     *
+     * @experimental
+     *
+     * @param[in] context A pointer to the attester plugin struct.
+     * @param[in] flags Specifying default value (0) generates a report for
+     * local attestation. Specifying OE_REPORT_FLAGS_REMOTE_ATTESTATION
+     * generates a report for remote attestation.
+     * @param[in] report_data The report data that will be included in the
+     * report.
+     * @param[in] report_data_size The size of the **report_data** in bytes.
+     * @param[in] opt_params Optional additional parameters needed for the
+     * current enclave type. For SGX, this can be sgx_target_info_t for local
+     * attestation.
+     * @param[in] opt_params_size The size of the **opt_params** buffer.
+     * @param[out] report_buffer This points to the resulting report upon
+     * success.
+     * @param[out] report_buffer_size This is set to the
+     * size of the report buffer on success.
+     *
+     * @retval OE_OK The report was successfully created.
+     * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
+     * @retval OE_OUT_OF_MEMORY Failed to allocate memory.
+     * @retval An appropriate error code on failure.
+     *
+     */
+    oe_result_t (*get_report)(
+        oe_attester_t* context,
+        uint32_t flags,
+        const uint8_t* report_data,
+        size_t report_data_size,
+        const void* opt_params,
+        size_t opt_params_size,
+        uint8_t** report_buffer,
+        size_t* report_buffer_size);
 
     /**
      * Frees the generated attestation evidence and endorsements.
@@ -144,6 +187,8 @@ struct _oe_attester
         uint8_t* endorsements_buffer);
 };
 
+#endif // OE_BUILD_ENCLAVE
+
 /**
  * The verifier attestion role. The verifier is reponsible for verifying the
  * attestation evidence and must implement the functions below.
@@ -155,6 +200,28 @@ struct _oe_verifier
      * The base attestation role containing the common functions for each role.
      */
     oe_attestation_role_t base;
+
+    /**
+     *
+     * Gets the optional settings data for thhe input evidence format.
+     *
+     * @experimental
+     *
+     * @param[in] context A pointer to the verifier plugin struct.
+     * @param[in] format The format for which to retrieve the optional settings.
+     * @param[out] settings An output pointer that will be assigned the address
+     * of a dynamically allocated buffer that holds the returned settings. This
+     * pointer can be assigned a NULL value if there is no settings needed.
+     * @param[out] settings_size A pointer that points to the size of the
+     * returned format settings buffer (number of bytes).
+     * @retval OE_OK on success.
+     * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+     * @retval other appropriate error code.
+     */
+    oe_result_t (*get_format_settings)(
+        oe_verifier_t* context,
+        uint8_t** settings,
+        size_t* settings_size);
 
     /**
      * Verifies the attestation evidence and returns the claims contained in
@@ -182,8 +249,8 @@ struct _oe_verifier
      *        valid.
      * - validity_until (oe_datetime_t)
      *      - Overall datetime at which the evidence and endorsements expire.
-     * - plugin_uuid (uint8_t[16])
-     *      - The UUID of the plugin used to verify the evidence.
+     * - format_uuid (uint8_t[16])
+     *      - The format UUID of the verified evidence.
      *
      * The plugin is responsible for handling endianness and ensuring that the
      * data from the raw evidence converted properly for each platform.
@@ -198,8 +265,8 @@ struct _oe_verifier
      * bytes.
      * @param[in] policies A list of policies to use.
      * @param[in] policies_size The size of the policy list.
-     * @param[out] claims The list of returned claims.
-     * @param[out] claims_length The number of claims.
+     * @param[out] claims The list of base + custom claims.
+     * @param[out] claims_length The length of the claims list.
      * @retval OE_OK on success.
      * @retval An appropriate error code on failure.
      */
@@ -215,24 +282,54 @@ struct _oe_verifier
         size_t* claims_length);
 
     /**
+     * Verify the integrity of the legacy report and its signature.
+     *
+     * This entry point verifies that the report signature is valid.
+     * If the report is local, it verifies that it is correctly signed by the
+     * enclave platform. If the report is remote, it verifies that the signing
+     * authority is rooted to a trusted authority such as the enclave platform
+     * manufacturer.
+     *
+     * @experimental
+     *
+     * @param[in] context A pointer to the verifier plugin struct.
+     * @param[in] report The buffer containing the report to verify.
+     * @param[in] report_size The size of the **report** buffer.
+     * @param[out] parsed_report Optional **oe_report_t** structure to populate
+     * with the report properties in a standard format.
+     *
+     * @retval OE_OK The report was successfully created.
+     * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
+     * @retval An appropriate error code on failure.
+     *
+     */
+    oe_result_t (*verify_report)(
+        oe_verifier_t* context,
+        const uint8_t* report,
+        size_t report_size,
+        oe_report_t* parsed_report);
+
+    /**
      * Frees the generated claims.
      *
      * @experimental
      *
      * @param[in] context A pointer to the verifier plugin struct.
-     * @param[out] claims The list of returned claims.
-     * @param[out] claims_length The number of claims.
+     * @param[in] claims The list of claims.
+     * @param[in] claims_length The length of the claims list.
      * @retval OE_OK on success.
      * @retval An appropriate error code on failure.
      */
-    oe_result_t (*free_claims_list)(
+    oe_result_t (*free_claims)(
         oe_verifier_t* context,
         oe_claim_t* claims,
         size_t claims_length);
 };
 
+#ifdef OE_BUILD_ENCLAVE
+
 /**
- * oe_register_attester
+ * oe_register_attester_plugin
  *
  * Registers a new attester plugin and optionally configures it with plugin
  * specific configuration data. The function will fail if the plugin UUID has
@@ -248,18 +345,58 @@ struct _oe_verifier
  * @param[in] config_data An optional pointer to the configuration data.
  * @param[in] config_data_size The size in bytes of config_data.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER Atleast one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
  * @retval OE_OUT_OF_MEMORY Out of memory.
  * @retval OE_ALREADY_EXISTS A plugin with the same UUID is already registered.
- * @retval Otherwise, returns the error code the plugin's function.
+ * @retval An appropriate error code on failure.
  */
-oe_result_t oe_register_attester(
+oe_result_t oe_register_attester_plugin(
     oe_attester_t* plugin,
     const void* config_data,
     size_t config_data_size);
 
 /**
- * oe_register_verifier
+ * oe_unregister_attester_plugin
+ *
+ * Unregisters an attester plugin.
+ *
+ * This is available in the enclave only.
+ *
+ * @experimental
+ *
+ * @param[in] plugin A pointer to the attestation plugin struct.
+ * @retval OE_OK The function succeeded.
+ * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
+ * @retval An appropriate error code on failure.
+ */
+oe_result_t oe_unregister_attester_plugin(oe_attester_t* plugin);
+
+/**
+ * oe_find_attester_plugin
+ *
+ * Find an attester plugin of specified format ID.
+ *
+ * This is available in the enclave only.
+ *
+ * @experimental
+ *
+ * @param[in] format_id Pointer to the evidence format ID requested.
+ * @param[out] attester_plugin Pointer to a buffer to hold the found plugin.
+ * The caller shall not modify or reclaim the returned plugin buffer.
+ * @retval OE_OK The function succeeded.
+ * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_NOT_FOUND No plugin of the given format ID can be found.
+ * @retval An appropriate error code on failure.
+ */
+oe_result_t oe_find_attester_plugin(
+    const oe_uuid_t* format_id,
+    oe_attester_t** attester_plugin);
+
+#endif // OE_BUILD_ENCLAVE
+
+/**
+ * oe_register_verifier_plugin
  *
  * Registers a new verifier plugin and optionally configures it with plugin
  * specific configuration data. The function will fail if the plugin UUID has
@@ -275,187 +412,53 @@ oe_result_t oe_register_attester(
  * @param[in] config_data An optional pointer to the configuration data.
  * @param[in] config_data_size The size in bytes of config_data.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER Atleast one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
  * @retval OE_OUT_OF_MEMORY Out of memory.
  * @retval OE_ALREADY_EXISTS A plugin with the same UUID is already registered.
- * @retval Otherwise, returns the error code the plugin's function.
+ * @retval An appropriate error code on failure.
  */
-oe_result_t oe_register_verifier(
+oe_result_t oe_register_verifier_plugin(
     oe_verifier_t* plugin,
     const void* config_data,
     size_t config_data_size);
 
 /**
- * oe_unregister_attester
+ * oe_unregister_verifier_plugin
  *
- * Unregisters an attester plugin. This is available in the enclave only.
+ * Unregisters an verifier plugin.
  *
- * @experimental
- *
- * @param[in] plugin A pointer to the attestation plugin struct.
- * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER Atleast one of the parameters is invalid.
- * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
- * @retval Otherwise, returns the error code the plugin's function.
- */
-oe_result_t oe_unregister_attester(oe_attester_t* plugin);
-
-/**
- * oe_unregister_verifier
- *
- * Unregisters an verifier plugin. This is available in the enclave and host.
- *
- * @experimental
- *
- * @param[in] plugin A pointer to the attestation plugin struct.
- * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER Atleast one of the parameters is invalid.
- * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
- * @retval Otherwise, returns the error code the plugin's function.
- */
-oe_result_t oe_unregister_verifier(oe_verifier_t* plugin);
-
-/**
- * oe_get_evidence
- *
- * Generates the attestation evidence for the given UUID attestation format.
- * This function is only available in the enclave.
- *
- * @experimental
- *
- * @param[in] evidence_format_uuid The UUID of the plugin.
- * @param[in] flags Specifying default value (0) generates evidence for local
- * attestation. Specifying OE_EVIDENCE_FLAGS_REMOTE_ATTESTATION generates
- * evidence for remote attestation.
- * @param[in] custom_claims The optional custom claims list.
- * @param[in] custom_claims_length The number of custom claims.
- * @param[in] opt_params The optional plugin-specific input parameters.
- * @param[in] opt_params_size The size of opt_params in bytes.
- * @param[out] evidence_buffer An output pointer that will be assigned the
- * address of the evidence buffer.
- * @param[out] evidence_buffer_size A pointer that points to the size of the
- * evidence buffer in bytes.
- * @param[out] endorsements_buffer An output pointer that will be assigned the
- * address of the endorsements buffer.
- * @param[out] endorsements_buffer_size A pointer that points to the size of the
- * endorsements buffer in bytes.
- * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER Atleast one of the parameters is invalid.
- * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
- * @retval Otherwise, returns the error code the plugin's function.
- */
-oe_result_t oe_get_evidence(
-    const oe_uuid_t* evidence_format_uuid,
-    uint32_t flags,
-    const oe_claim_t* custom_claims,
-    size_t custom_claims_length,
-    const void* opt_params,
-    size_t opt_params_size,
-    uint8_t** evidence_buffer,
-    size_t* evidence_buffer_size,
-    uint8_t** endorsements_buffer,
-    size_t* endorsements_buffer_size);
-
-/**
- * oe_free_evidence
- *
- * Frees the attestation evidence. This function is only available in the
- * enclave.
- *
- * @experimental
- *
- * @param[in] evidence_buffer A pointer to the evidence buffer.
- * @retval OE_OK The function succeeded.
- * @retval Otherwise, returns the error code the plugin's function.
- */
-oe_result_t oe_free_evidence(uint8_t* evidence_buffer);
-
-/**
- * oe_free_endorsements
- *
- * Frees the generated attestation endorsements. This function is only available
- * in the enclave.
- *
- * @experimental
- *
- * @param[in] endorsements_buffer A pointer to the endorsements buffer.
- * @retval OE_OK The function succeeded.
- * @retval Otherwise, returns the error code the plugin's function.
- */
-oe_result_t oe_free_endorsements(uint8_t* endorsements_buffer);
-
-/**
- * oe_verify_evidence
- *
- * Verifies the attestation evidence and returns well known and custom claims.
  * This is available in the enclave and host.
  *
- * The following claims will be returned at the minimum:
- *
- *  - id_version (uint32_t)
- *      - Version number. Must be 1.
- *  - security_version (uint32_t)
- *      - Security version of the enclave. (ISVN for SGX).
- * - attributes (uint64_t)
- *      - Attributes flags for the evidence:
- *          - OE_REPORT_ATTRIBUTES_DEBUG: The evidence is for a debug enclave.
- *          - OE_REPORT_ATTRIBUTES_REMOTE: The evidence can be used for remote
- * attestation.
- * - unique_id (uint8_t[32])
- *      - The unique ID for the enclave (MRENCLAVE for SGX).
- * - signer_id (uint8_t[32])
- *      - The signer ID for the enclave (MRSIGNER for SGX).
- * - product_id (uint8_t[32])
- *      - The product ID for the enclave (ISVPRODID for SGX).
- * - validity_from (oe_datetime_t, optional)
- *      - Overall datetime from which the evidence and endorsements are valid.
- * - validity_until (oe_datetime_t, optional)
- *      - Overall datetime at which the evidence and endorsements expire.
- * - plugin_uuid (uint8_t[16])
- *      - The UUID of the plugin used to verify the evidence.
- *
  * @experimental
  *
- * @param[in] evidence_buffer The evidence buffer.
- * @param[in] evidence_buffer_size The size of evidence_buffer in bytes.
- * @param[in] endorsements_buffer The optional endorsements buffer.
- * @param[in] endorsements_buffer_size The size of endorsements_buffer in bytes.
- * @param[in] policies An optional list of policies to use.
- * @param[in] policies_size The size of the policy list.
- * @param[out] claims The list of claims.
- * @param[out] claims_length The length of the claims list.
+ * @param[in] plugin A pointer to the attestation plugin struct.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER Atleast one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
- * @retval OE_CONSTRAINT_FAILED The UUIDs of the evidence and endorsements
- * differ.
- * @retval Otherwise, returns the error code the plugin's function.
+ * @retval An appropriate error code on failure.
  */
-oe_result_t oe_verify_evidence(
-    const uint8_t* evidence_buffer,
-    size_t evidence_buffer_size,
-    const uint8_t* endorsements_buffer,
-    size_t endorsements_buffer_size,
-    const oe_policy_t* policies,
-    size_t policies_size,
-    oe_claim_t** claims,
-    size_t* claims_length);
+oe_result_t oe_unregister_verifier_plugin(oe_verifier_t* plugin);
 
 /**
- * oe_free_claims_list
+ * oe_find_verifier_plugin
  *
- * Frees a claims list.
+ * Find a verifier plugin of specified format ID.
+ *
+ * This is available in the enclave only.
  *
  * @experimental
  *
- * @param[in] claims The list of claims.
- * @param[in] claims_length The length of the claims list.
+ * @param[in] format_id Pointer to the evidence format ID requested.
+ * @param[out] verifier_plugin Pointer to a buffer to hold the found plugin.
+ * The caller shall not modify or reclaim the returned plugin buffer.
  * @retval OE_OK The function succeeded.
- * @retval OE_NOT_FOUND The plugin that generated the claims does not exist or
- * has not been registered, so the claims can't be freed.
- * @retval Otherwise, returns the error code the plugin's function.
+ * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_NOT_FOUND No plugin of the given format ID can be found.
+ * @retval An appropriate error code on failure.
  */
-oe_result_t oe_free_claims_list(oe_claim_t* claims, size_t claims_length);
+oe_result_t oe_find_verifier_plugin(
+    const oe_uuid_t* format_id,
+    oe_verifier_t** verifier_plugin);
 
 OE_EXTERNC_END
 

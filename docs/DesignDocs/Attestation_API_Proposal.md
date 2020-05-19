@@ -162,12 +162,12 @@ local / remote flags.
 
 Proposed Headers files:
 
-- Attester public API to be declared in `openenclave/attestation/attesters.h`
-- Verifier public API to be declared in `openenclave/attestation/verifiers.h`
-- SGX evidence format UUIDs to be declared in
-`openenclave/attestation/evidence_uuids_sgx.h`
+- Attester public API to be declared in `openenclave/attestation/attester.h`
+- Verifier public API to be declared in `openenclave/attestation/verifier.h`
 - Plugin API (helper functions and plugin entry points) to be declared in
 `openenclave/internal/plugin.h`
+- SGX evidence format UUIDs (and any other SGX-specific plugin related names)
+to be declared in `openenclave/internal/sgx/plugin.h`
 
 Use cases for evidence generation:
 
@@ -179,7 +179,7 @@ Use cases for evidence generation:
   - This function is idempotent and can be called multiple times without
   adverse effect.
 - Select an evidence format from a supplied list of formats.
-  - Function `oe_result_t oe_attester_select_format(const oe_uuid_t* format_ids, size_t format_ids_length, oe_uuid_t** selected_format_id)`
+  - Function `oe_result_t oe_attester_select_format(const oe_uuid_t* formats, size_t formats_length, oe_uuid_t* selected_format)`
   - The input list is treated as an ordered list, with descending priority
   order from left to right.
   - The implementation selects the left-most evidence format from the input
@@ -216,14 +216,14 @@ Use cases for evidence verification:
   - This function is idempotent and can be called multiple times without
   adverse effect.
 - Enumerate all evidence formats that can be verified.
-  - Function `oe_result_t oe_verifier_get_formats(oe_uuid_t** format_list, size_t* format_list_length)`.
+  - Function `oe_result_t oe_verifier_get_formats(oe_uuid_t** formats, size_t* formats_length)`.
   - The returned evidence format list is held in a dynamically-allocated buffer
   - Every format in the returned list maps to at least one registered verifier
   plugin.
 - Free a dynamically allocated format list buffer.
-  - Function `oe_result_t oe_verifier_free_formats(oe_uuid_t* format_list, size_t format_list_length)`.
+  - Function `oe_result_t oe_verifier_free_formats(oe_uuid_t* formats)`.
 - Get the settings for verification of an evidence format.
-  - Function `oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format_id, uint8_t** settings, size_t* settings_size)`.
+  - Function `oe_result_t oe_verifier_get_format_settings(const oe_uuid_t* format, uint8_t** settings, size_t* settings_size)`.
   - For a given evidence format, get the settings for it in a dynamically
   allocated buffer. This settings will be passed to an attester as the
   `opt_params` parameter for evidence generation.
@@ -231,19 +231,17 @@ Use cases for evidence verification:
   document
   [[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md).
 - Free a dynamically allocated format settings buffer.
-  - Function `oe_result_t oe_verifier_free_format_settings(uint8_t* settings, size_t settings_size)`
+  - Function `oe_result_t oe_verifier_free_format_settings(uint8_t* settings)`
   - As defined in document
   [[Attestation V3 Update]](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md)
 - Verify evidence, optionally with a set of endorsements and policies.
-  - Function `oe_result_t oe_verify_evidence(const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** base_claims, size_t* base_claims_length, oe_claim_t** custom_claims, size_t* custom_claims_length)`.
-  - This function has the same definition as in the OE SDK V0.9 release,
-  except that there are two returned claims lists: one for well-known base
-  claims, and the other for custom claims.
-    - Note: the separate lists ensures custom claims will not have name
-    conflict with base claims.
+  - Function `oe_result_t oe_verify_evidence(const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t*claims_length)`.
+  - This function has the same definition as in the OE SDK V0.9 release.
 - Free a dynamically allocated claims list buffer.
-  - Function `oe_result_t oe_free_claims_list(oe_claim_t* claims, size_t claims_length)`.
-  - The same definition as in the OE SDK V0.9 release.
+  - Function `oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length)`.
+  - This function has the definition as in the OE SDK V0.9 release.
+  - The claims list must have an claim of name `OE_CLAIM_UNIQUE_ID` with
+  a value of the UUID of the evidence to which the claims belong.
 - Shutdown verifier environment.
   - Function `oe_result_t oe_verifier_shutdown(void)`.
   - Internally, the implementation unregisters all verifier plugins, and
@@ -417,9 +415,12 @@ endorsements.
   - Entry point `oe_result_t (*get_evidence)(oe_attester_t* context, const oe_claim_t* custom_claims, size_t custom_claims_length, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* evidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`.
   - The legacy `flags` parameter in the OE SDK V0.9 release is removed.
 - Get a legacy-format report
-  - Entry point `oe_result_t (*get_report)(...)`
-  - Note: this entry point must be implemented if the OS SDK framework
+  - Entry point `oe_result_t (*get_report)(oe_attester_t* context, uint32_t flags, const uint8_t* report_data, size_t report_data_size, const void* opt_params, size_t opt_params_size, uint8_t** report_buffer, size_t* report_buffer_size)`.
+  - This entry point must be implemented by a plugin if the OS SDK framework
   needs to support its legacy public API `oe_get_report()` using this plugin.
+  - The returned report buffer pointed to by the address in `report_buffer`
+  is a contiguous array that can be freed by calling the OE SDK legacy
+  public API function `oe_free_report()`.
 - Free a dynamically allocated evidence buffer.
   - The same entry point definition as in the OE SDK V0.9 release.
 - Free a dynamically allocated endorsements buffer.
@@ -433,16 +434,20 @@ Below are the use cases for an attester plugin library to interact with the
 OE SDK framework:
 - Register an attester plugin.
   - Helper function
-  `oe_result_t oe_register_attester(oe_attester_t* plugin, const void* config_data, size_t config_data_size)`.
+  `oe_result_t oe_register_attester_plugin(oe_attester_t* plugin, const void* config_data, size_t config_data_size)`.
   - The same definition as in the OE SDK V0.9 release, except that this function
-  is not part of the public API.
+  is not part of the public API, and the function name is changed.
   - The optional `config_data`, e.g. for holding platform-specific configuration,
   is provided by the plugin library, not by the application as in the V0.9
   release.
+- Find a registered attester plugin.
+  - Helper function `oe_result_t oe_find_attester_plugin(const oe_uuid_t* format_id,  oe_attester_t** attester_plugin)`.
+  - This function finds the registered attester plugin for the given `format_id`
+  and returns the pointer to this plugin in the supplied buffer `attester_plugin`.
 - Unregister an attester plugin.
-  - Helper function `oe_result_t oe_unregister_attester(oe_attester_t* plugin)`.
+  - Helper function `oe_result_t oe_unregister_attester_plugin(oe_attester_t* plugin)`.
   - The same definition as in the OE SDK V0.9 release, except that this function
-  is not part of the public API.
+  is not part of the public API, and the function name is changed.
 
 In the OE SDK V0.10 release, attester plugins are managed internally between
 the OE SDK framework and plugin libraries, without exposing details to
@@ -464,32 +469,38 @@ by the verifier plugin entry points defined in the `oe_verifier_t` structure:
   - The same entry point definition as for attester plugins.
 - Get the setting for an evidence format supported by the verifier plugin.
     - Entry point `oe_result_t (*get_format_settings)(oe_verifier_t* context, uint8_t** settings, size_t* settings_size)`.
-    - Note: this is a new entry point, not present in the OE SDK V0.9 release.
+    - This is a new entry point, not present in the OE SDK V0.9 release.
+    - The returned settings is held in a dynamically allocated continuous buffer,
+    so the OE SDK framework can free it, and there is no need of a plugin entry
+    point.
 - Verify evidence, optionally using a set of input endorsements and policies.
-  - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** base_claims, size_t* base_claims_length, oe_claim_t** custom_claims, size_t* custom_claims_length)`.
-  - This entry point has the same definition as in the OE SDK V0.9 release,
-  except that there are two returned claims lists: one for well-known base
-  claims, and the other for custom claims.
-    - Note: the separate lists ensures custom claims will not have name
-    conflict with base claims.
+  - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
+  - This entry point has the same definition as in the OE SDK V0.9 release.
 - Verify a legacy-format report
-  - Entry point `oe_result_t (*verify_report)(...)`
-  - Note: this entry point must be implemented if the OS SDK framework needs to
-  support the legacy public API `oe_verify_report()` using the plugin.
-- Free a dynamically allocated claims list buffer.
-  - The same entry point definition as in the OE SDK V0.9 release.
+  - Entry point `oe_result_t (*verify_report)(oe_verifier_t* context, const uint8_t* report, size_t report_size, oe_report_t* parsed_report)`
+  - This entry point must be implemented by a plugin if the OS SDK framework needs to
+  support the legacy public API `oe_verify_report()` using this plugin.
+- Free a dynamically allocated claims buffers.
+  - Entry point `oe_result_t (*free_claims)(oe_verifier_t* context, oe_claim_t* claims, size_t claims_length)`.
+  - Similar to the `free_claims_list()` entry point definition as in the
+  OE SDK V0.9 release, except that the name is changed to be more consistent
+  with other attestation API names.
 
 Use cases for a verifier plugin to interact with the OE SDK framework:
 - Register a verifier plugin.
   - Helper function
-  `oe_result_t oe_register_verifier(oe_verifier_t* plugin, const void* config_data, size_t config_data_size)`.
+  `oe_result_t oe_register_verifier_plugin(oe_verifier_t* plugin, const void* config_data, size_t config_data_size)`, and the function name is changed.
   - The same definition as in the OE SDK V0.9 release, except that this function
   is not part of the public API.
+- Find a registered verifier plugin.
+  - Helper function `oe_result_t oe_find_verifier_plugin(const oe_uuid_t* format_id,  oe_verifier_t** verifier_plugin)`.
+  - This function finds the registered verifier plugin for the given `format_id`
+  and returns the pointer to this plugin in the supplied buffer `verifier_plugin`.
 - Unregister a verifier plugin.
   - Helper function
-  `oe_result_t oe_unregister_verifier(oe_verifier_t* plugin)`.
+  `oe_result_t oe_unregister_verifier_plugin(oe_verifier_t* plugin)`.
   - The same definition as in the OE SDK V0.9 release, except that this function
-  is not part of the public API.
+  is not part of the public API, and the function name is changed.
 
 In the OE SDK V0.10 release, initialization of verifier plugin libraries is
 triggered with the application call to `oe_verifier_initialize()`.
@@ -594,6 +605,4 @@ since legacy applications don't call these API functions explicitly.
 
 # Authors
 
-- Name: Shanwei Cen
-    - email: shanwei.cen@intel.com
-    - github user name: shnwc
+- Shanwei Cen (@shnwc)
