@@ -63,7 +63,7 @@ OE verification API to take evidence format ID as an input:
         raw_evidence_buffer_size,
         ...);
 
-### This option decouples evidence format ID and raw evidence buffer. There is no extra space for OE-defined evidence fields such as custom claims.
+This option decouples evidence format ID and raw evidence buffer. There is no extra space for OE-defined evidence fields such as custom claims.
 
 ## Optoins 2
 OE verification API to guess the format of the evidence:
@@ -73,7 +73,7 @@ OE verification API to guess the format of the evidence:
         evidence_buffer_size,
         ...);
 
-### Evidence format guessing can be challenging. If the verifier already knows the format, guesssing is less reliable. Other TEE verifier cannot verify OE evidence.
+Evidence format guessing can be challenging. If the verifier already knows the format, guesssing is less reliable. Other TEE verifier cannot verify OE evidence.
 
 
 
