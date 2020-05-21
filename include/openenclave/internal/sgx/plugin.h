@@ -6,6 +6,8 @@
 
 #include <openenclave/bits/report.h>
 
+OE_EXTERNC_BEGIN
+
 /**
  * The SGX plugin UUID.
  */
@@ -58,5 +60,7 @@ typedef struct _oe_sgx_plugin_claims_entry
     // name_size bytes follow.
     // value_size_bytes follow.
 } oe_sgx_plugin_claims_entry_t;
+
+OE_EXTERNC_END
 
 #endif // _OE_INTENRAL_SGX_PLUGIN

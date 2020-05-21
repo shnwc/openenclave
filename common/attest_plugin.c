@@ -11,13 +11,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "attest_plugin.h"
 #include "common.h"
 
 #include <openenclave/attestation/verifier.h>
+#include <openenclave/bits/evidence.h>
 #include <openenclave/internal/plugin.h>
-#ifdef OE_BUILD_ENCLAVE
-#include <openenclave/attestation/attester.h>
-#endif
 
 const char* OE_REQUIRED_CLAIMS[OE_REQUIRED_CLAIMS_COUNT] = {
     OE_CLAIM_ID_VERSION,
@@ -32,46 +31,18 @@ const char* OE_OPTIONAL_CLAIMS[OE_OPTIONAL_CLAIMS_COUNT] = {
     OE_CLAIM_VALIDITY_FROM,
     OE_CLAIM_VALIDITY_UNTIL};
 
-/**
- * Header that the OE runtime puts ontop of the attestation plugins.
- */
-typedef struct _oe_attestation_header
-{
-    /* Set to OE_ATTESTATION_HEADER_VERSION. */
-    uint32_t version;
+// Variables storing the verifier list.
+static oe_plugin_list_node_t* verifiers = NULL;
 
-    /* UUID to identify format. */
-    oe_uuid_t format_id;
-
-    /* Size of evidence/endorsements sent to the plugin. */
-    uint64_t data_size;
-
-    /* The actual data */
-    uint8_t data[];
-
-    /* data_size bytes that follows the header will be sent to a plugin. */
-} oe_attestation_header_t;
-
-// Struct definition to represent the list of plugins.
-struct plugin_list_node_t
-{
-    oe_attestation_role_t* plugin;
-    struct plugin_list_node_t* next;
-};
-
-// Variables storing the attester and verifier lists.
-struct plugin_list_node_t* attesters = NULL;
-struct plugin_list_node_t* verifiers = NULL;
-
-static void _print_hex_buf_tail(
+static void _print_hex_buffer_tail(
     const char* title,
-    const uint8_t* buf,
+    const uint8_t* buffer,
     size_t size,
     size_t tail)
 {
-    const int max_size = 64;
+    const size_t max_size = 64;
     size_t offset = 0;
-    char* str = NULL;
+    char* output = NULL;
 
     // Adjust for printing only the tail
     if (tail && size > tail)
@@ -80,10 +51,10 @@ static void _print_hex_buf_tail(
         size = tail;
     }
 
-    str = (char*)oe_malloc(max_size * 2 + 1);
-    if (!str)
+    output = (char*)oe_malloc(max_size * 2 + 1);
+    if (!output)
     {
-        OE_TRACE_ERROR("Out of memory for _print_hex_buf()");
+        OE_TRACE_ERROR("Out of memory for _print_hex_buffer()");
         return;
     }
 
@@ -95,34 +66,38 @@ static void _print_hex_buf_tail(
 
     while (size > 0)
     {
-        size_t seg_size = size;
-        if (seg_size > max_size)
-            seg_size = max_size;
-        oe_hex_string(str, seg_size * 2 + 1, buf + offset, seg_size);
-        str[seg_size * 2] = '\0';
-        OE_TRACE_VERBOSE("%s\n", str);
-        size -= seg_size;
-        offset += seg_size;
+        size_t segment_size = size;
+        if (segment_size > max_size)
+            segment_size = max_size;
+        oe_hex_string(
+            output, segment_size * 2 + 1, buffer + offset, segment_size);
+        output[segment_size * 2] = '\0';
+        OE_TRACE_VERBOSE("%s\n", output);
+        size -= segment_size;
+        offset += segment_size;
     }
-    oe_free(str);
+    oe_free(output);
 }
 
-static void _print_hex_buf(const char* title, const uint8_t* buf, size_t size)
+static void _print_hex_buffer(
+    const char* title,
+    const uint8_t* buffer,
+    size_t size)
 {
-    _print_hex_buf_tail(title, buf, size, 128);
+    _print_hex_buffer_tail(title, buffer, size, 128);
 }
 
 // Finds the plugin node with the given ID. If found, the function
 // will return the node and store the pointer of the previous node
 // in prev (NULL for the head pointer). If not found, the function
 // will return NULL.
-static struct plugin_list_node_t* _find_plugin(
-    struct plugin_list_node_t* head,
+oe_plugin_list_node_t* oe_attest_find_plugin(
+    oe_plugin_list_node_t* head,
     const oe_uuid_t* target_format_id,
-    struct plugin_list_node_t** prev)
+    oe_plugin_list_node_t** prev)
 {
-    struct plugin_list_node_t* ret = NULL;
-    struct plugin_list_node_t* cur = NULL;
+    oe_plugin_list_node_t* ret = NULL;
+    oe_plugin_list_node_t* cur = NULL;
 
     if (prev)
         *prev = NULL;
@@ -146,31 +121,32 @@ static struct plugin_list_node_t* _find_plugin(
     return ret;
 }
 
-static oe_result_t _register_plugin(
-    struct plugin_list_node_t** list,
+oe_result_t oe_attest_register_plugin(
+    oe_plugin_list_node_t** list,
     oe_attestation_role_t* plugin,
-    const void* config_data,
-    size_t config_data_size)
+    const void* configuration_data,
+    size_t configuration_data_size)
 {
     oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node = NULL;
+    oe_plugin_list_node_t* plugin_node = NULL;
 
     if (!list || !plugin)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    plugin_node = _find_plugin(*list, &plugin->format_id, NULL);
+    plugin_node = oe_attest_find_plugin(*list, &plugin->format_id, NULL);
     if (plugin_node)
     {
         plugin_node = NULL;
         OE_RAISE(OE_ALREADY_EXISTS);
     }
 
-    plugin_node = (struct plugin_list_node_t*)oe_malloc(sizeof(*plugin_node));
+    plugin_node = (oe_plugin_list_node_t*)oe_malloc(sizeof(*plugin_node));
     if (plugin_node == NULL)
         OE_RAISE(OE_OUT_OF_MEMORY);
 
     // Run the register function for the plugin.
-    OE_CHECK(plugin->on_register(plugin, config_data, config_data_size));
+    OE_CHECK(plugin->on_register(
+        plugin, configuration_data, configuration_data_size));
 
     // Add to the plugin list.
     plugin_node->plugin = plugin;
@@ -187,19 +163,19 @@ done:
     return result;
 }
 
-static oe_result_t _unregister_plugin(
-    struct plugin_list_node_t** list,
+oe_result_t oe_attest_unregister_plugin(
+    oe_plugin_list_node_t** list,
     oe_attestation_role_t* plugin)
 {
     oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* prev = NULL;
-    struct plugin_list_node_t* cur = NULL;
+    oe_plugin_list_node_t* prev = NULL;
+    oe_plugin_list_node_t* cur = NULL;
 
     if (!list || !plugin)
         OE_RAISE(OE_INVALID_PARAMETER);
 
     // Find the guid and remove it.
-    cur = _find_plugin(*list, &plugin->format_id, &prev);
+    cur = oe_attest_find_plugin(*list, &plugin->format_id, &prev);
     if (cur == NULL)
         OE_RAISE(OE_NOT_FOUND);
 
@@ -218,182 +194,23 @@ done:
     return result;
 }
 
-#ifdef OE_BUILD_ENCLAVE
-
-oe_result_t oe_register_attester_plugin(
-    oe_attester_t* plugin,
-    const void* config_data,
-    size_t config_data_size)
-{
-    return _register_plugin(
-        &attesters,
-        (oe_attestation_role_t*)plugin,
-        config_data,
-        config_data_size);
-}
-
-oe_result_t oe_unregister_attester_plugin(oe_attester_t* plugin)
-{
-    return _unregister_plugin(&attesters, (oe_attestation_role_t*)plugin);
-}
-
-#endif
-
 oe_result_t oe_register_verifier_plugin(
     oe_verifier_t* plugin,
-    const void* config_data,
-    size_t config_data_size)
+    const void* configuration_data,
+    size_t configuration_data_size)
 {
-    return _register_plugin(
+    return oe_attest_register_plugin(
         &verifiers,
         (oe_attestation_role_t*)plugin,
-        config_data,
-        config_data_size);
+        configuration_data,
+        configuration_data_size);
 }
 
 oe_result_t oe_unregister_verifier_plugin(oe_verifier_t* plugin)
 {
-    return _unregister_plugin(&verifiers, (oe_attestation_role_t*)plugin);
+    return oe_attest_unregister_plugin(
+        &verifiers, (oe_attestation_role_t*)plugin);
 }
-
-#ifdef OE_BUILD_ENCLAVE
-static oe_result_t _wrap_with_header(
-    const oe_uuid_t* format_id,
-    const uint8_t* data,
-    size_t data_size,
-    uint8_t** total_data,
-    size_t* total_data_size)
-{
-    oe_result_t result = OE_UNEXPECTED;
-    oe_attestation_header_t* header;
-
-    OE_CHECK(oe_safe_add_sizet(sizeof(*header), data_size, total_data_size));
-
-    *total_data = (uint8_t*)oe_malloc(*total_data_size);
-    if (*total_data == NULL)
-        OE_RAISE(OE_OUT_OF_MEMORY);
-
-    header = (oe_attestation_header_t*)*total_data;
-    header->version = OE_ATTESTATION_HEADER_VERSION;
-    header->format_id = *format_id;
-    header->data_size = data_size;
-    memcpy(header->data, data, data_size);
-
-    result = OE_OK;
-
-done:
-    return result;
-}
-
-oe_result_t oe_get_evidence(
-    const oe_uuid_t* format_id,
-    const oe_claim_t* custom_claims,
-    size_t custom_claims_length,
-    const void* opt_params,
-    size_t opt_params_size,
-    uint8_t** evidence_buffer,
-    size_t* evidence_buffer_size,
-    uint8_t** endorsements_buffer,
-    size_t* endorsements_buffer_size)
-{
-    oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node = NULL;
-    oe_attester_t* plugin = NULL;
-    uint8_t* plugin_evidence = NULL;
-    size_t plugin_evidence_size = 0;
-    uint8_t* plugin_endorsements = NULL;
-    size_t plugin_endorsements_size = 0;
-    uint8_t* total_evidence_buf = NULL;
-    size_t total_evidence_size = 0;
-    uint8_t* total_endorsements_buf = NULL;
-    size_t total_endorsements_size = 0;
-
-    if (!format_id || !evidence_buffer || !evidence_buffer_size ||
-        (endorsements_buffer && !endorsements_buffer_size) ||
-        (!endorsements_buffer && endorsements_buffer_size))
-        OE_RAISE(OE_INVALID_PARAMETER);
-
-    // Find a plugin for attestation type and run its get_evidence.
-    plugin_node = _find_plugin(attesters, format_id, NULL);
-    if (plugin_node == NULL)
-        OE_RAISE(OE_NOT_FOUND);
-
-    // Now get the evidence and endorsements (if desired).
-    plugin = (oe_attester_t*)plugin_node->plugin;
-    OE_CHECK(plugin->get_evidence(
-        plugin,
-        custom_claims,
-        custom_claims_length,
-        opt_params,
-        opt_params_size,
-        &plugin_evidence,
-        &plugin_evidence_size,
-        endorsements_buffer ? &plugin_endorsements : NULL,
-        endorsements_buffer ? &plugin_endorsements_size : NULL));
-
-    // Wrap the attestation header around the evidence.
-    OE_CHECK(_wrap_with_header(
-        format_id,
-        plugin_evidence,
-        plugin_evidence_size,
-        &total_evidence_buf,
-        &total_evidence_size));
-
-    if (endorsements_buffer)
-    {
-        OE_CHECK(_wrap_with_header(
-            format_id,
-            plugin_endorsements,
-            plugin_endorsements_size,
-            &total_endorsements_buf,
-            &total_endorsements_size));
-    }
-
-    // Finally, set the out parameters.
-    *evidence_buffer = total_evidence_buf;
-    *evidence_buffer_size = total_evidence_size;
-    total_evidence_buf = NULL;
-
-    _print_hex_buf(
-        "oe_get_evidence() generated evidence",
-        (uint8_t*)*evidence_buffer,
-        *evidence_buffer_size);
-
-    if (endorsements_buffer)
-    {
-        *endorsements_buffer = total_endorsements_buf;
-        *endorsements_buffer_size = total_endorsements_size;
-        total_endorsements_buf = NULL;
-    }
-
-    result = OE_OK;
-
-done:
-    if (plugin && plugin_evidence)
-    {
-        plugin->free_evidence(plugin, plugin_evidence);
-        if (plugin_endorsements)
-            plugin->free_endorsements(plugin, plugin_endorsements);
-    }
-    if (total_evidence_buf != NULL)
-        oe_free(total_evidence_buf);
-    if (total_endorsements_buf != NULL)
-        oe_free(total_endorsements_buf);
-    return result;
-}
-
-oe_result_t oe_free_evidence(uint8_t* evidence_buffer)
-{
-    oe_free(evidence_buffer);
-    return OE_OK;
-}
-
-oe_result_t oe_free_endorsements(uint8_t* evidence_buffer)
-{
-    oe_free(evidence_buffer);
-    return OE_OK;
-}
-#endif
 
 static bool _check_claims(const oe_claim_t* claims, size_t claims_length)
 {
@@ -426,7 +243,7 @@ oe_result_t oe_verify_evidence(
     size_t* claims_length)
 {
     oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node;
+    oe_plugin_list_node_t* plugin_node;
     oe_verifier_t* verifier;
     oe_attestation_header_t* evidence =
         (oe_attestation_header_t*)evidence_buffer;
@@ -438,12 +255,12 @@ oe_result_t oe_verify_evidence(
          endorsements_buffer_size < sizeof(*endorsements)))
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    _print_hex_buf(
+    _print_hex_buffer(
         "oe_verify_evidence() got evidence",
         (uint8_t*)evidence_buffer,
         evidence_buffer_size);
 
-    plugin_node = _find_plugin(verifiers, &evidence->format_id, NULL);
+    plugin_node = oe_attest_find_plugin(verifiers, &evidence->format_id, NULL);
     if (plugin_node == NULL)
         OE_RAISE(OE_NOT_FOUND);
 
@@ -502,7 +319,7 @@ oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length)
 {
     oe_uuid_t uuid;
     oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node;
+    oe_plugin_list_node_t* plugin_node;
     oe_verifier_t* verifier;
 
     if (!claims)
@@ -510,7 +327,7 @@ oe_result_t oe_free_claims(oe_claim_t* claims, size_t claims_length)
 
     OE_CHECK(_get_uuid(claims, claims_length, &uuid));
 
-    plugin_node = _find_plugin(verifiers, &uuid, NULL);
+    plugin_node = oe_attest_find_plugin(verifiers, &uuid, NULL);
     if (plugin_node == NULL)
         OE_RAISE(OE_NOT_FOUND);
 
@@ -524,9 +341,9 @@ done:
 }
 
 // Count the number of plugins in the input list
-static size_t _count_plugins(struct plugin_list_node_t* head)
+static size_t _count_plugins(const oe_plugin_list_node_t* head)
 {
-    struct plugin_list_node_t* cur = head;
+    const oe_plugin_list_node_t* cur = head;
     size_t count = 0;
     while (cur)
     {
@@ -535,32 +352,6 @@ static size_t _count_plugins(struct plugin_list_node_t* head)
     }
     return count;
 }
-
-#ifdef OE_BUILD_ENCLAVE
-oe_result_t oe_attester_select_format(
-    const oe_uuid_t* formats,
-    size_t formats_length,
-    oe_uuid_t* selected_format)
-{
-    oe_result_t result = OE_NOT_FOUND;
-
-    if (!formats || !formats_length || !selected_format)
-        OE_RAISE(OE_INVALID_PARAMETER);
-
-    for (size_t i = 0; i < formats_length; i++)
-    {
-        if (_find_plugin(attesters, formats + i, NULL))
-        {
-            memcpy(selected_format, formats + i, sizeof(oe_uuid_t));
-            result = OE_OK;
-            break;
-        }
-    }
-
-done:
-    return result;
-}
-#endif
 
 oe_result_t oe_verifier_get_formats(oe_uuid_t** formats, size_t* formats_length)
 {
@@ -580,7 +371,7 @@ oe_result_t oe_verifier_get_formats(oe_uuid_t** formats, size_t* formats_length)
     }
     else
     {
-        struct plugin_list_node_t* cur = NULL;
+        oe_plugin_list_node_t* cur = NULL;
         size_t idx = 0;
 
         formats_buf = (oe_uuid_t*)oe_malloc(count * sizeof(oe_uuid_t));
@@ -626,13 +417,13 @@ oe_result_t oe_verifier_get_format_settings(
     size_t* settings_size)
 {
     oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node = NULL;
+    oe_plugin_list_node_t* plugin_node = NULL;
     oe_verifier_t* plugin = NULL;
 
     if (!format || !settings || !settings_size)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    plugin_node = _find_plugin(verifiers, format, NULL);
+    plugin_node = oe_attest_find_plugin(verifiers, format, NULL);
     if (!plugin_node)
         OE_RAISE(OE_NOT_FOUND);
 
@@ -649,43 +440,17 @@ oe_result_t oe_verifier_free_format_settings(uint8_t* settings)
     return OE_OK;
 }
 
-#ifdef OE_BUILD_ENCLAVE
-
-oe_result_t oe_find_attester_plugin(
-    const oe_uuid_t* format_id,
-    oe_attester_t** attester_plugin)
-{
-    oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node = NULL;
-
-    if (!format_id || !attester_plugin)
-        OE_RAISE(OE_INVALID_PARAMETER);
-
-    plugin_node = _find_plugin(attesters, format_id, NULL);
-    if (!plugin_node)
-        OE_RAISE(OE_NOT_FOUND);
-
-    *attester_plugin = (oe_attester_t*)plugin_node->plugin;
-
-    result = OE_OK;
-
-done:
-    return result;
-}
-
-#endif
-
 oe_result_t oe_find_verifier_plugin(
     const oe_uuid_t* format_id,
     oe_verifier_t** verifier_plugin)
 {
     oe_result_t result = OE_UNEXPECTED;
-    struct plugin_list_node_t* plugin_node = NULL;
+    oe_plugin_list_node_t* plugin_node = NULL;
 
     if (!format_id || !verifier_plugin)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    plugin_node = _find_plugin(verifiers, format_id, NULL);
+    plugin_node = oe_attest_find_plugin(verifiers, format_id, NULL);
     if (!plugin_node)
         OE_RAISE(OE_NOT_FOUND);
 

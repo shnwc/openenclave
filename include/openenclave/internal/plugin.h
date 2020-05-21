@@ -17,7 +17,7 @@
 #include <openenclave/attestation/attester.h>
 #endif
 #include <openenclave/attestation/verifier.h>
-#include <openenclave/bits/report.h>
+#include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
 
@@ -25,39 +25,40 @@ OE_EXTERNC_BEGIN
 
 /**
  * Struct that defines the base structure of each attestation role plugin.
- * Each attestation role will have an UUID to indicate what evidence format
+ * Each plugin will have an UUID to indicate what evidence format
  * is supported and have functions for registering/unregistering the plugin.
- * Each attestation role will also define the require function for their
- * specific role (i.e. `get_evidence` for the attester and `verifiy_evidence`
+ * Each plugin will also define the required function for their
+ * specific role (i.e., `get_evidence` for the attester and `verifiy_evidence`
  * for the verifier).
  */
 typedef struct _oe_attestation_role oe_attestation_role_t;
 struct _oe_attestation_role
 {
     /**
-     * The UUID for the attestation role.
+     * The UUID indicating what evidence format is supported.
      */
     oe_uuid_t format_id;
 
     /**
-     * The function that gets executed when the attestation role is registered.
+     * The function that gets executed when the plugin is registered.
      *
      * @experimental
      *
      * @param[in] context A pointer to the attestation role struct.
-     * @param[in] config_data An optional pointer to the configuration data.
-     * @param[in] config_data_size The size in bytes of config_data.
+     * @param[in] configuration_data An optional pointer to the configuration
+     * data.
+     * @param[in] configuration_data_size The size in bytes of
+     * configuration_data.
      * @retval OE_OK on success.
      * @retval An appropriate error code on failure.
      */
     oe_result_t (*on_register)(
         oe_attestation_role_t* context,
-        const void* config_data,
-        size_t config_data_size);
+        const void* configuration_data,
+        size_t configuration_data_size);
 
     /**
-     * The function that gets executed when the attestation role is
-     * unregistered.
+     * The function that gets executed when the plugin is unregistered.
      *
      * @experimental
      *
@@ -71,14 +72,14 @@ struct _oe_attestation_role
 #ifdef OE_BUILD_ENCLAVE
 
 /**
- * The attester attestion role. The attester is reponsible for generating the
+ * The attester attestation role. The attester is reponsible for generating the
  * attestation evidence and must implement the functions below.
  */
 typedef struct _oe_attester oe_attester_t;
 struct _oe_attester
 {
     /**
-     * The base attestation role containing the common functions for each role.
+     * The base attestation role with the common functions for each plugin.
      */
     oe_attestation_role_t base;
 
@@ -120,7 +121,7 @@ struct _oe_attester
         size_t* endorsements_buffer_size);
 
     /**
-     * Creates a legacy report to be used in local or remote attestation.
+     * Creates a legacy SGX report to be used in local or remote attestation.
      * The report shall contain the data given by the **report_data** parameter.
      * This entry point is for the OE SDK framework to implement legacy API
      * oe_get_report_v2().
@@ -160,7 +161,7 @@ struct _oe_attester
         size_t* report_buffer_size);
 
     /**
-     * Frees the generated attestation evidence and endorsements.
+     * Frees the generated attestation evidence.
      *
      * @experimental
      *
@@ -190,20 +191,20 @@ struct _oe_attester
 #endif // OE_BUILD_ENCLAVE
 
 /**
- * The verifier attestion role. The verifier is reponsible for verifying the
+ * The verifier attestation role. The verifier is reponsible for verifying the
  * attestation evidence and must implement the functions below.
  */
 typedef struct _oe_verifier oe_verifier_t;
 struct _oe_verifier
 {
     /**
-     * The base attestation role containing the common functions for each role.
+     * The base attestation role with the common functions for each plugin.
      */
     oe_attestation_role_t base;
 
     /**
      *
-     * Gets the optional settings data for thhe input evidence format.
+     * Gets the optional settings data for the input evidence format.
      *
      * @experimental
      *
@@ -215,7 +216,7 @@ struct _oe_verifier
      * @param[out] settings_size A pointer that points to the size of the
      * returned format settings buffer (number of bytes).
      * @retval OE_OK on success.
-     * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+     * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
      * @retval other appropriate error code.
      */
     oe_result_t (*get_format_settings)(
@@ -232,12 +233,12 @@ struct _oe_verifier
      *      - Version number. Must be 1.
      *  - security_version (uint32_t)
      *      - Security version of the enclave. (ISVN for SGX).
-     * - attributes (uint64_t)
+     *  - attributes (uint64_t)
      *      - Attributes flags for the evidence:
-     *          - OE_REPORT_ATTRIBUTES_DEBUG: The evidence is for a debug
-     * enclave.
-     *          - OE_REPORT_ATTRIBUTES_REMOTE: The evidence can be used for
-     * remote attestation.
+     *          - OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG: The evidence is for a debug
+     *            mode enclave.
+     *          - OE_EVIDENCE_ATTRIBUTES_SGX_REMOTE: The evidence can be used
+     *            for remote attestation
      * - unique_id (uint8_t[32])
      *      - The unique ID for the enclave (MRENCLAVE for SGX).
      * - signer_id (uint8_t[32])
@@ -245,10 +246,11 @@ struct _oe_verifier
      * - product_id (uint8_t[32])
      *      - The product ID for the enclave (ISVPRODID for SGX).
      * - validity_from (oe_datetime_t)
-     *      - Overall datetime from which the evidence and endorsements are
-     *        valid.
+     *      - The earliest datetime from which the evidence and endorsements are
+     *        both valid.
      * - validity_until (oe_datetime_t)
-     *      - Overall datetime at which the evidence and endorsements expire.
+     *      - The latest datetime until which the evidence and endorsements are
+     *        both valid.
      * - format_uuid (uint8_t[16])
      *      - The format UUID of the verified evidence.
      *
@@ -332,28 +334,28 @@ struct _oe_verifier
  * oe_register_attester_plugin
  *
  * Registers a new attester plugin and optionally configures it with plugin
- * specific configuration data. The function will fail if the plugin UUID has
- * already been registered.
+ * specific configuration data. The function will fail if a plugin for the
+ * same UUID has already been registered.
  *
  * This is available in the enclave only.
  *
  * @experimental
  *
  * @param[in] plugin A pointer to the attestation plugin struct. Note that this
- * will not copy the contents of the pointer, so the pointer must be kept valid
- * until the plugin is unregistered.
- * @param[in] config_data An optional pointer to the configuration data.
- * @param[in] config_data_size The size in bytes of config_data.
+ * will not copy the contents of the plugin struct, so the struct must be kept
+ * valid until the plugin is unregistered.
+ * @param[in] configuration_data An optional pointer to the configuration data.
+ * @param[in] configuration_data_size The size in bytes of configuration_data.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_OUT_OF_MEMORY Out of memory.
- * @retval OE_ALREADY_EXISTS A plugin with the same UUID is already registered.
+ * @retval OE_ALREADY_EXISTS A plugin for the same UUID is already registered.
  * @retval An appropriate error code on failure.
  */
 oe_result_t oe_register_attester_plugin(
     oe_attester_t* plugin,
-    const void* config_data,
-    size_t config_data_size);
+    const void* configuration_data,
+    size_t configuration_data_size);
 
 /**
  * oe_unregister_attester_plugin
@@ -366,7 +368,7 @@ oe_result_t oe_register_attester_plugin(
  *
  * @param[in] plugin A pointer to the attestation plugin struct.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
  * @retval An appropriate error code on failure.
  */
@@ -385,7 +387,7 @@ oe_result_t oe_unregister_attester_plugin(oe_attester_t* plugin);
  * @param[out] attester_plugin Pointer to a buffer to hold the found plugin.
  * The caller shall not modify or reclaim the returned plugin buffer.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND No plugin of the given format ID can be found.
  * @retval An appropriate error code on failure.
  */
@@ -399,28 +401,28 @@ oe_result_t oe_find_attester_plugin(
  * oe_register_verifier_plugin
  *
  * Registers a new verifier plugin and optionally configures it with plugin
- * specific configuration data. The function will fail if the plugin UUID has
- * already been registered.
+ * specific configuration data. The function will fail if a plugin for the
+ * same UUID has already been registered.
  *
  * This is available in the enclave and host.
  *
  * @experimental
  *
  * @param[in] plugin A pointer to the attestation plugin struct. Note that this
- * will not copy the contents of the pointer, so the pointer must be kept valid
- * until the plugin is unregistered.
- * @param[in] config_data An optional pointer to the configuration data.
- * @param[in] config_data_size The size in bytes of config_data.
+ * will not copy the contents of the plugin struct, so the struct must be kept
+ * valid until the plugin is unregistered.
+ * @param[in] configuration_data An optional pointer to the configuration data.
+ * @param[in] configuration_data_size The size in bytes of configuration_data.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_OUT_OF_MEMORY Out of memory.
- * @retval OE_ALREADY_EXISTS A plugin with the same UUID is already registered.
+ * @retval OE_ALREADY_EXISTS A plugin for the same UUID is already registered.
  * @retval An appropriate error code on failure.
  */
 oe_result_t oe_register_verifier_plugin(
     oe_verifier_t* plugin,
-    const void* config_data,
-    size_t config_data_size);
+    const void* configuration_data,
+    size_t configuration_data_size);
 
 /**
  * oe_unregister_verifier_plugin
@@ -433,7 +435,7 @@ oe_result_t oe_register_verifier_plugin(
  *
  * @param[in] plugin A pointer to the attestation plugin struct.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND The plugin does not exist or has not been registered.
  * @retval An appropriate error code on failure.
  */
@@ -452,7 +454,7 @@ oe_result_t oe_unregister_verifier_plugin(oe_verifier_t* plugin);
  * @param[out] verifier_plugin Pointer to a buffer to hold the found plugin.
  * The caller shall not modify or reclaim the returned plugin buffer.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND No plugin of the given format ID can be found.
  * @retval An appropriate error code on failure.
  */

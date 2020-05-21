@@ -33,12 +33,12 @@ static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
 
 static oe_result_t _on_register(
     oe_attestation_role_t* context,
-    const void* config_data,
-    size_t config_data_size)
+    const void* configuration_data,
+    size_t configuration_data_size)
 {
     OE_UNUSED(context);
-    OE_UNUSED(config_data);
-    OE_UNUSED(config_data_size);
+    OE_UNUSED(configuration_data);
+    OE_UNUSED(configuration_data_size);
 
 #if defined(OE_BUILD_ENCLAVE) || !defined(OE_LINK_SGX_DCAP_QL)
     return OE_OK;
@@ -528,6 +528,7 @@ static oe_result_t _get_format_settings(
     if (!memcmp(&context->base.format_id, &_local_uuid, sizeof(oe_uuid_t)))
     {
 #ifdef OE_BUILD_ENCLAVE
+        // Enclave-side, SGX local attestation is supported
         uint8_t* tmp_target = NULL;
         size_t tmp_target_size = 0;
 
@@ -598,13 +599,12 @@ static oe_result_t _verify_report(
 #endif
         !memcmp(&context->base.format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
+#ifdef OE_BUILD_ENCLAVE
+        OE_CHECK(oe_verify_report_internal(report, report_size, parsed_report));
+#else
         OE_CHECK(oe_verify_report_internal(
-#ifndef OE_BUILD_ENCLAVE
-            NULL,
+            NULL, report, report_size, parsed_report));
 #endif
-            report,
-            report_size,
-            parsed_report));
         result = OE_OK;
     }
     else

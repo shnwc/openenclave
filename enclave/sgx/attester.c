@@ -27,12 +27,12 @@ static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
 
 static oe_result_t _on_register(
     oe_attestation_role_t* context,
-    const void* config_data,
-    size_t config_data_size)
+    const void* configuration_data,
+    size_t configuration_data_size)
 {
     OE_UNUSED(context);
-    OE_UNUSED(config_data);
-    OE_UNUSED(config_data_size);
+    OE_UNUSED(configuration_data);
+    OE_UNUSED(configuration_data_size);
     return OE_OK;
 }
 
@@ -318,8 +318,8 @@ static oe_result_t _get_attester_plugins(
     static oe_mutex_t mutex = OE_MUTEX_INITIALIZER;
     oe_result_t result = OE_UNEXPECTED;
     oe_result_t retval = OE_UNEXPECTED;
-    size_t tmp_buf_size = 0;
-    uint8_t* tmp_buf = NULL;
+    size_t temporary_buffer_size = 0;
+    uint8_t* temporary_buffer = NULL;
 
     if (!attesters || !attesters_length)
         OE_RAISE(OE_INVALID_PARAMETER);
@@ -328,14 +328,14 @@ static oe_result_t _get_attester_plugins(
 
     // Get the size of the needed buffer
     result = oe_get_supported_attester_format_ids_ocall(
-        (uint32_t*)&retval, NULL, 0, &tmp_buf_size);
+        (uint32_t*)&retval, NULL, 0, &temporary_buffer_size);
     OE_CHECK(result);
     // It's possible that there is no supported format
-    if (tmp_buf_size >= sizeof(oe_uuid_t))
+    if (temporary_buffer_size >= sizeof(oe_uuid_t))
     {
         // Allocate buffer to held the format IDs
-        tmp_buf = oe_calloc(1, tmp_buf_size);
-        if (tmp_buf == NULL)
+        temporary_buffer = oe_calloc(1, temporary_buffer_size);
+        if (temporary_buffer == NULL)
         {
             result = OE_OUT_OF_MEMORY;
             goto done;
@@ -343,12 +343,15 @@ static oe_result_t _get_attester_plugins(
 
         // Get the format IDs
         result = oe_get_supported_attester_format_ids_ocall(
-            (uint32_t*)&retval, tmp_buf, tmp_buf_size, &tmp_buf_size);
+            (uint32_t*)&retval,
+            temporary_buffer,
+            temporary_buffer_size,
+            &temporary_buffer_size);
         OE_CHECK(result);
     }
 
-    oe_uuid_t* uuid_list = (oe_uuid_t*)tmp_buf;
-    size_t uuid_count = tmp_buf_size / sizeof(oe_uuid_t);
+    oe_uuid_t* uuid_list = (oe_uuid_t*)temporary_buffer;
+    size_t uuid_count = temporary_buffer_size / sizeof(oe_uuid_t);
 
     // Add one additional entry: the first one for local attestation
     *attesters =
@@ -378,10 +381,10 @@ static oe_result_t _get_attester_plugins(
     result = OE_OK;
 
 done:
-    if (tmp_buf)
+    if (temporary_buffer)
     {
-        oe_free(tmp_buf);
-        tmp_buf = NULL;
+        oe_free(temporary_buffer);
+        temporary_buffer = NULL;
     }
     oe_mutex_unlock(&mutex);
     return result;
@@ -389,13 +392,13 @@ done:
 
 static oe_attester_t* attesters = NULL;
 static size_t attesters_length = 0;
-static oe_mutex_t init_mutex = OE_MUTEX_INITIALIZER;
+static oe_mutex_t mutex = OE_MUTEX_INITIALIZER;
 
 oe_result_t oe_attester_initialize(void)
 {
     oe_result_t result = OE_UNEXPECTED;
 
-    OE_TEST(oe_mutex_lock(&init_mutex) == 0);
+    OE_TEST(oe_mutex_lock(&mutex) == 0);
 
     // Do nothing if attester plugins are already initialized
     if (attesters)
@@ -416,7 +419,7 @@ oe_result_t oe_attester_initialize(void)
     result = OE_OK;
 
 done:
-    oe_mutex_unlock(&init_mutex);
+    oe_mutex_unlock(&mutex);
     OE_TRACE_INFO("attesters_length=%d", attesters_length);
     return result;
 }
@@ -427,7 +430,7 @@ oe_result_t oe_attester_shutdown(void)
 {
     oe_result_t result = OE_UNEXPECTED;
 
-    OE_TEST(oe_mutex_lock(&init_mutex) == 0);
+    OE_TEST(oe_mutex_lock(&mutex) == 0);
 
     // Either attester plugins have not been initialized,
     // or there is no supported plugin
@@ -447,6 +450,6 @@ oe_result_t oe_attester_shutdown(void)
     result = OE_OK;
 
 done:
-    oe_mutex_unlock(&init_mutex);
+    oe_mutex_unlock(&mutex);
     return result;
 }

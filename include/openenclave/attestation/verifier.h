@@ -12,7 +12,7 @@
 #ifndef _OE_ATTESTATION_VERIFIER_H
 #define _OE_ATTESTATION_VERIFIER_H
 
-#include <openenclave/bits/report.h>
+#include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
 
@@ -42,13 +42,13 @@ oe_result_t oe_verifier_initialize(void);
  *
  * @experimental
  *
- * @param[out] formats An output poionter that will be assigned the address of
+ * @param[out] formats An output pointer that will be assigned the address of
  * a dynamically allocated buffer that holds the returned list of formats
  * supported for evidence verification
  * @param[out] formats_length A pointer that points to the length of the
  * returned formats list (number of format ID entries).
  * @retval OE_OK on success.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval other appropriate error code.
  */
 oe_result_t oe_verifier_get_formats(
@@ -82,7 +82,7 @@ oe_result_t oe_verifier_free_formats(oe_uuid_t* formats);
  * @param[out] settings_size A pointer that points to the size of the returned
  * format settings buffer (number of bytes).
  * @retval OE_OK on success.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval other appropriate error code.
  */
 oe_result_t oe_verifier_get_format_settings(
@@ -111,27 +111,28 @@ oe_result_t oe_verifier_free_format_settings(uint8_t* settings);
  *
  * The following base claims will be returned at the minimum:
  *
- *  - id_version (uint32_t)
- *      - Version number. Must be 1.
- *  - security_version (uint32_t)
- *      - Security version of the enclave. (ISVN for SGX).
+ * - id_version (uint32_t)
+ *     - Version number. Must be 1.
+ * - security_version (uint32_t)
+ *     - Security version of the enclave. (ISVN for SGX).
  * - attributes (uint64_t)
- *      - Attributes flags for the evidence:
- *          - OE_REPORT_ATTRIBUTES_DEBUG: The evidence is for a debug enclave.
- *          - OE_REPORT_ATTRIBUTES_REMOTE: The evidence can be used for remote
- * attestation.
+ *     - Attributes flags for the evidence:
+ *         - OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG: The evidence is for a debug mode
+ *           enclave.
+ *         - OE_EVIDENCE_ATTRIBUTES_SGX_REMOTE: The evidence can be used for
+ *           remote attestation
  * - unique_id (uint8_t[32])
- *      - The unique ID for the enclave (MRENCLAVE for SGX).
+ *     - The unique ID for the enclave (MRENCLAVE for SGX).
  * - signer_id (uint8_t[32])
- *      - The signer ID for the enclave (MRSIGNER for SGX).
+ *     - The signer ID for the enclave (MRSIGNER for SGX).
  * - product_id (uint8_t[32])
- *      - The product ID for the enclave (ISVPRODID for SGX).
+ *     - The product ID for the enclave (ISVPRODID for SGX).
  * - validity_from (oe_datetime_t, optional)
- *      - Overall datetime from which the evidence and endorsements are valid.
+ *     - Overall datetime from which the evidence and endorsements are valid.
  * - validity_until (oe_datetime_t, optional)
- *      - Overall datetime at which the evidence and endorsements expire.
+ *     - Overall datetime at which the evidence and endorsements expire.
  * - format_uuid (uint8_t[16])
- *      - The format UUID of the verified evidence.
+ *     - The format UUID of the verified evidence.
  *
  * @experimental
  *
@@ -141,10 +142,10 @@ oe_result_t oe_verifier_free_format_settings(uint8_t* settings);
  * @param[in] endorsements_buffer_size The size of endorsements_buffer in bytes.
  * @param[in] policies An optional list of policies to use.
  * @param[in] policies_size The size of the policy list.
- * @param[out] claims The list of  claims (including base and custom).
+ * @param[out] claims The list of claims (including base and custom).
  * @param[out] claims_length The length of the claims list.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval other appropriate error code.
  */
 oe_result_t oe_verify_evidence(

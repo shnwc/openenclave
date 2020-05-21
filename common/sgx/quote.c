@@ -16,7 +16,7 @@
 
 #include <time.h>
 
-#define OE_DATETIME_STR_SIZE 21
+#define OE_DATETIME_STRING_SIZE 21
 
 // Public key of Intel's root certificate.
 static const char* g_expected_root_certificate_key =
@@ -492,6 +492,11 @@ oe_result_t oe_verify_quote_with_sgx_endorsements(
     oe_datetime_t validity_until = {0};
     oe_datetime_t validation_time = {0};
 
+    char vtime[OE_DATETIME_STRING_SIZE];
+    char vfrom[OE_DATETIME_STRING_SIZE];
+    char vuntil[OE_DATETIME_STRING_SIZE];
+    size_t tsize = OE_DATETIME_STRING_SIZE;
+
     OE_CHECK_MSG(
         oe_verify_quote_internal(quote, quote_size),
         "Failed to verify remote quote.",
@@ -530,14 +535,10 @@ oe_result_t oe_verify_quote_with_sgx_endorsements(
         validation_time = *input_validation_time;
     }
 
-    char vtime[OE_DATETIME_STR_SIZE];
-    char vfrom[OE_DATETIME_STR_SIZE];
-    char vuntil[OE_DATETIME_STR_SIZE];
-    size_t tsize = OE_DATETIME_STR_SIZE;
     oe_datetime_to_string(&validation_time, vtime, &tsize);
-    tsize = OE_DATETIME_STR_SIZE;
+    tsize = OE_DATETIME_STRING_SIZE;
     oe_datetime_to_string(&validity_from, vfrom, &tsize);
-    tsize = OE_DATETIME_STR_SIZE;
+    tsize = OE_DATETIME_STRING_SIZE;
     oe_datetime_to_string(&validity_until, vuntil, &tsize);
     OE_TRACE_INFO(
         "vtime=%s (%s) vfrom=%s vuntil=%s",

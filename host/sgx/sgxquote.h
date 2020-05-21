@@ -4,7 +4,7 @@
 #ifndef _OE_SGXQUOTE_H
 #define _OE_SGXQUOTE_H
 
-#include <openenclave/bits/report.h>
+#include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
 

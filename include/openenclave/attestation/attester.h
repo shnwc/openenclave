@@ -18,7 +18,7 @@
 
 #else // OE_BUILD_ENCLAVE
 
-#include <openenclave/bits/report.h>
+#include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
 
@@ -56,7 +56,7 @@ oe_result_t oe_attester_initialize(void);
  * @param[out] selected_format Pointer to a caller-supplied buffer to
  * hold the selected evidence format.
  * @retval OE_OK on success.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND if no format in the input list is supported.
  * @retval other appropriate error code.
  */
@@ -76,8 +76,8 @@ oe_result_t oe_attester_select_format(
  * @param[in] evidence_format The format UUID of the evidence to be generated.
  * @param[in] custom_claims The optional custom claims list.
  * @param[in] custom_claims_length The number of custom claims.
- * @param[in] opt_params The optional format-specific input parameters.
- * @param[in] opt_params_size The size of opt_params in bytes.
+ * @param[in] optional_parameters The optional format-specific input parameters.
+ * @param[in] optional_parameters_size The size of optional_parameters in bytes.
  * @param[out] evidence_buffer An output pointer that will be assigned the
  * address of the dynamically allocated evidence buffer.
  * @param[out] evidence_buffer_size A pointer that points to the size of the
@@ -87,7 +87,7 @@ oe_result_t oe_attester_select_format(
  * @param[out] endorsements_buffer_size A pointer that points to the size of the
  * endorsements buffer in bytes.
  * @retval OE_OK The function succeeded.
- * @retval OE_INVALID_PARAMTER At least one of the parameters is invalid.
+ * @retval OE_INVALID_PARAMETER At least one of the parameters is invalid.
  * @retval OE_NOT_FOUND The input evidence format is not supported.
  * @retval other appropriate error code.
  */
@@ -95,8 +95,8 @@ oe_result_t oe_get_evidence(
     const oe_uuid_t* evidence_format,
     const oe_claim_t* custom_claims,
     size_t custom_claims_length,
-    const void* opt_params,
-    size_t opt_params_size,
+    const void* optional_parameters,
+    size_t optional_parameters_size,
     uint8_t** evidence_buffer,
     size_t* evidence_buffer_size,
     uint8_t** endorsements_buffer,
