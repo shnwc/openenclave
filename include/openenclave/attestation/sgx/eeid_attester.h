@@ -7,7 +7,8 @@
 #define _OE_EEID_ATTESTER_H
 
 #ifndef OE_BUILD_ENCLAVE
-#error "The sgx attester (sgx/eeid_attester.h) is only available for the enclave."
+#error \
+    "The sgx attester (sgx/eeid_attester.h) is only available for the enclave."
 #endif
 
 #include <openenclave/bits/defs.h>
@@ -21,7 +22,7 @@ OE_EXTERNC_BEGIN
  * `oe_get_target_info` for local attestation and is ignored for remote
  *  attestation.
  */
-//typedef void* oe_sgx_plugin_opt_params;
+// typedef void* oe_sgx_plugin_opt_params;
 
 /**
  * oe_sgx_eeid_attester_initialize

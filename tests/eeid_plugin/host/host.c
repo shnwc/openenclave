@@ -3,9 +3,9 @@
 
 #include <stdio.h>
 
-#include <openenclave/internal/plugin.h>
 #include <openenclave/attestation/sgx/eeid_verifier.h>
 #include <openenclave/host.h>
+#include <openenclave/internal/plugin.h>
 #include <openenclave/internal/tests.h>
 
 #include "../../../common/sgx/endorsements.h"
@@ -28,14 +28,8 @@ void host_ocall_verify(
     size_t claims_length = 0;
     OE_TEST_CODE(
         oe_verify_evidence(
-            evidence,
-            evidence_size,
-            NULL,
-            0,
-            NULL,
-            0,
-            &claims,
-            &claims_length), OE_OK);
+            evidence, evidence_size, NULL, 0, NULL, 0, &claims, &claims_length),
+        OE_OK);
 
     claims = NULL;
     claims_length = 0;
@@ -50,7 +44,8 @@ void host_ocall_verify(
             NULL,
             0,
             &claims,
-            &claims_length), OE_OK);
+            &claims_length),
+        OE_OK);
 }
 
 void host_remote_verify(oe_enclave_t* enclave)
@@ -75,7 +70,8 @@ void host_remote_verify(oe_enclave_t* enclave)
             &evidence_out_size,
             endorsements,
             endorsements_size,
-            &endorsements_out_size), OE_OK);
+            &endorsements_out_size),
+        OE_OK);
     OE_TEST(result == OE_OK);
 
     // Without endorsements
@@ -88,7 +84,8 @@ void host_remote_verify(oe_enclave_t* enclave)
             NULL,
             0,
             &claims,
-            &claims_length), OE_OK);
+            &claims_length),
+        OE_OK);
 
     // With endorsements
     OE_TEST_CODE(
@@ -100,7 +97,8 @@ void host_remote_verify(oe_enclave_t* enclave)
             NULL,
             0,
             &claims,
-            &claims_length), OE_OK);
+            &claims_length),
+        OE_OK);
 }
 
 void one_enclave_tests(const char* filename, uint32_t flags)
@@ -163,7 +161,8 @@ void start_enclave(const char* filename, uint32_t flags, enclave_stuff_t* stuff)
             flags,
             &setting,
             1,
-            &stuff->enclave), OE_OK);
+            &stuff->enclave),
+        OE_OK);
 
     stuff->evidence_size = 65536;
     stuff->evidence = malloc(stuff->evidence_size);
@@ -181,7 +180,8 @@ void start_enclave(const char* filename, uint32_t flags, enclave_stuff_t* stuff)
             &stuff->evidence_out_size,
             stuff->endorsements,
             stuff->endorsements_size,
-            &stuff->endorsements_out_size), OE_OK);
+            &stuff->endorsements_out_size),
+        OE_OK);
     OE_TEST(result == OE_OK);
 
     OE_TEST(

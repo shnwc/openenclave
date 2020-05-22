@@ -15,9 +15,9 @@
 #include <openenclave/corelibc/stdlib.h>
 #include <openenclave/internal/crypto/sha.h>
 #include <openenclave/internal/eeid.h>
+#include <openenclave/internal/plugin.h>
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/report.h>
-#include <openenclave/internal/plugin.h>
 #include <openenclave/internal/sgx/eeid_plugin.h>
 #include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/trace.h>

@@ -5,9 +5,9 @@
 #include <openenclave/attestation/sgx/eeid_verifier.h>
 #include <openenclave/corelibc/string.h>
 #include <openenclave/enclave.h>
-#include <openenclave/internal/sgx/plugin.h>
-#include <openenclave/internal/sgx/eeid_plugin.h>
 #include <openenclave/internal/report.h>
+#include <openenclave/internal/sgx/eeid_plugin.h>
+#include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/tests.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,7 +135,8 @@ static void _test_get_evidence_fail()
             &evidence,
             &evidence_size,
             NULL,
-            NULL), OE_NOT_FOUND);
+            NULL),
+        OE_NOT_FOUND);
 
     OE_TEST_CODE(oe_sgx_eeid_attester_initialize(), OE_OK);
 }
@@ -161,7 +162,8 @@ static void _test_verify_evidence_fail()
             &evidence,
             &evidence_size,
             &endorsements,
-            &endorsements_size), OE_OK);
+            &endorsements_size),
+        OE_OK);
 
     // Test verify_evidence with wrong sizes
     OE_TEST_CODE(
@@ -173,7 +175,8 @@ static void _test_verify_evidence_fail()
             NULL,
             0,
             &claims,
-            &claims_length), OE_INVALID_PARAMETER);
+            &claims_length),
+        OE_INVALID_PARAMETER);
 
     OE_TEST_CODE(
         oe_verify_evidence(
@@ -184,7 +187,8 @@ static void _test_verify_evidence_fail()
             NULL,
             0,
             &claims,
-            &claims_length), OE_INVALID_PARAMETER);
+            &claims_length),
+        OE_INVALID_PARAMETER);
 
     // Test verify evidence when plugin is unregistered
     OE_TEST_CODE(oe_sgx_eeid_verifier_shutdown(), OE_OK);
@@ -197,7 +201,8 @@ static void _test_verify_evidence_fail()
             NULL,
             0,
             &claims,
-            &claims_length), OE_NOT_FOUND);
+            &claims_length),
+        OE_NOT_FOUND);
     OE_TEST_CODE(oe_sgx_eeid_verifier_initialize(), OE_OK);
 
     OE_TEST(oe_free_evidence(evidence) == OE_OK);
@@ -249,7 +254,8 @@ oe_result_t get_eeid_evidence(
             &local_evidence,
             &local_evidence_size,
             &local_endorsements,
-            &local_endorsements_size), OE_OK);
+            &local_endorsements_size),
+        OE_OK);
 
     if (local_evidence_size > evidence_size ||
         local_endorsements_size > endorsements_size)
