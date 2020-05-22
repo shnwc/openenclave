@@ -185,7 +185,7 @@ static oe_result_t _add_claim(
 }
 
 static oe_result_t _fill_with_known_claims(
-    const oe_verifier_t* context,
+    const oe_uuid_t* format_id,
     const uint8_t* report,
     size_t report_size,
     const oe_sgx_endorsements_t* sgx_endorsements,
@@ -196,7 +196,6 @@ static oe_result_t _fill_with_known_claims(
     oe_result_t result = OE_UNEXPECTED;
     oe_report_t parsed_report = {0};
     oe_identity_t* id = &parsed_report.identity;
-    const oe_uuid_t* plugin_id = &context->base.format_id;
     size_t claims_index = 0;
     oe_report_header_t* header = (oe_report_header_t*)report;
     oe_datetime_t valid_from = {0};
@@ -264,8 +263,8 @@ static oe_result_t _fill_with_known_claims(
         &claims[claims_index++],
         OE_CLAIM_FORMAT_UUID,
         sizeof(OE_CLAIM_FORMAT_UUID),
-        plugin_id,
-        sizeof(*plugin_id)));
+        format_id,
+        sizeof(*format_id)));
 
     if (header->report_type == OE_REPORT_TYPE_SGX_REMOTE)
     {
@@ -362,8 +361,8 @@ done:
     return result;
 }
 
-static oe_result_t _extract_claims(
-    const oe_verifier_t* context,
+oe_result_t oe_sgx_extract_claims(
+    const oe_uuid_t* format_id,
     const uint8_t* evidence,
     size_t evidence_size,
     const oe_sgx_endorsements_t* sgx_endorsements,
@@ -411,7 +410,7 @@ static oe_result_t _extract_claims(
 
     // Fill the list with the known claims.
     OE_CHECK(_fill_with_known_claims(
-        context,
+        format_id,
         evidence,
         report_size,
         sgx_endorsements,
@@ -497,8 +496,8 @@ static oe_result_t _verify_evidence(
     }
 
     // Last step is to return the required and custom claims.
-    OE_CHECK(_extract_claims(
-        context,
+    OE_CHECK(oe_sgx_extract_claims(
+        &context->base.format_id,
         evidence_buffer,
         evidence_buffer_size,
         &sgx_endorsements,

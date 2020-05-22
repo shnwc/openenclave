@@ -12,6 +12,10 @@ list(
   oeinfo.c
   oesign.c)
 
+if (WITH_EEID)
+  list(APPEND SOURCES oedump_eeid.c)
+endif ()
+
 check_symbol_exists(getopt_long getopt.h HAVE_GETOPT_LONG)
 
 if (NOT HAVE_GETOPT_LONG)
@@ -36,3 +40,7 @@ install(
   TARGETS oesign
   EXPORT openenclave-targets
   DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+if (WITH_EEID)
+  target_compile_definitions(oesign PRIVATE OE_WITH_EXPERIMENTAL_EEID)
+endif ()

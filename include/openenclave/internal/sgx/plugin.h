@@ -61,6 +61,52 @@ typedef struct _oe_sgx_plugin_claims_entry
     // value_size_bytes follow.
 } oe_sgx_plugin_claims_entry_t;
 
+/**
+ * Helper function that serializes a list of claims.
+ *
+ * @experimental
+ *
+ * @param [in] custom_claims Claims to serialize.
+ * @param [in] size_t custom_claims_length Length of **custom_claims**.
+ * @param [out] uint8_t** claims_out Output claims.
+ * @param [out] size_t* claims_size_out Length of **claims_out**.
+ *
+ * @retval OE_OK on success.
+ */
+struct _OE_SHA256;
+oe_result_t oe_sgx_serialize_claims(
+    const oe_claim_t* custom_claims,
+    size_t custom_claims_length,
+    uint8_t** claims_out,
+    size_t* claims_size_out,
+    struct _OE_SHA256* hash_out);
+
+/**
+ * Helper function that extracts claims from an evidence buffer.
+ *
+ * @experimental
+ *
+ * @param[in] evidence
+ *
+ * @param[in] evidence_size
+ *
+ * @param[in] sgx_endorsements
+ *
+ * @param[out] claims_out
+ *
+ * @param[out] claims_length_out
+ *
+ * @retval A pointer to the SGX verifier. This function never fails.
+ */
+struct _oe_sgx_endorsements_t;
+oe_result_t oe_sgx_extract_claims(
+    const oe_uuid_t* format_id,
+    const uint8_t* evidence,
+    size_t evidence_size,
+    const struct _oe_sgx_endorsements_t* sgx_endorsements,
+    oe_claim_t** claims_out,
+    size_t* claims_length_out);
+
 OE_EXTERNC_END
 
 #endif // _OE_INTENRAL_SGX_PLUGIN
