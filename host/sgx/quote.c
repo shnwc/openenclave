@@ -39,12 +39,11 @@ oe_result_t sgx_get_qetarget_info(
     OE_CHECK(oe_sgx_qe_get_target_info(
         format_id, opt_params, opt_params_size, (uint8_t*)target_info));
     result = OE_OK;
-done:
-    return result;
 #else
     result = OE_UNSUPPORTED;
-    return result;
 #endif
+done:
+    return result;
 }
 
 oe_result_t sgx_get_quote_size(

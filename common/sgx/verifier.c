@@ -128,7 +128,6 @@ static oe_result_t _verify_claims_hash(
     int hash_cmp = 0;
     OE_SHA256 hash;
     oe_sha256_context_t hash_ctx = {0};
-    void* report_data = NULL;
 
     OE_CHECK(oe_sha256_init(&hash_ctx));
     OE_CHECK(oe_sha256_update(&hash_ctx, claims, claims_size));
@@ -136,7 +135,6 @@ static oe_result_t _verify_claims_hash(
 
     if (report_type == OE_REPORT_TYPE_SGX_REMOTE)
     {
-        report_data = &((sgx_quote_t*)report)->report_body.report_data;
         hash_cmp = memcmp(
             &((sgx_quote_t*)report)->report_body.report_data,
             &hash,
@@ -144,7 +142,6 @@ static oe_result_t _verify_claims_hash(
     }
     else if (report_type == OE_REPORT_TYPE_SGX_LOCAL)
     {
-        report_data = &((sgx_report_t*)report)->body.report_data;
         hash_cmp = memcmp(
             &((sgx_report_t*)report)->body.report_data, &hash, OE_SHA256_SIZE);
     }
@@ -620,16 +617,18 @@ static oe_result_t _get_verifier_plugins(
     // Serialized access from multiple threads
     static oe_mutex_t mutex = OE_MUTEX_INITIALIZER;
     oe_result_t result = OE_UNEXPECTED;
+    size_t uuid_count = 0;
+
+    if (oe_mutex_lock(&mutex) != OE_OK)
+        return result;
 
     if (!verifiers || !verifiers_length)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    OE_TEST(oe_mutex_lock(&mutex) == 0);
-
 #ifdef OE_BUILD_ENCLAVE
-    size_t uuid_count = 2; // In enclave, only support local and ECDSA formats
+    uuid_count = 2; // In enclave, only support local and ECDSA formats
 #else
-    size_t uuid_count = 1; // In host, only support ECDSA format
+    uuid_count = 1; // In host, only support ECDSA format
 #endif
 
     *verifiers =
