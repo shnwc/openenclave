@@ -224,7 +224,7 @@ static oe_result_t _get_evidence(
 
 done:
     oe_free(claims);
-    oe_free(report);
+    oe_free_report(report);
     if (evidence != NULL)
         oe_free(evidence);
     if (endorsements != NULL)
@@ -295,16 +295,7 @@ static oe_result_t _get_report(
         result = OE_OK;
     }
     else // Unsupported flags or plugin
-    {
-        OE_UNUSED(report_data);
-        OE_UNUSED(report_data_size);
-        OE_UNUSED(opt_params);
-        OE_UNUSED(report_data_size);
-        OE_UNUSED(report_buffer);
-        OE_UNUSED(report_buffer_size);
-
         OE_RAISE(OE_UNSUPPORTED);
-    }
 
 done:
     return result;

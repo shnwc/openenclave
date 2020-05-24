@@ -93,6 +93,7 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
     void* format_ids,
     size_t* format_ids_size)
 {
+    const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
     oe_result_t result = OE_FAILURE;
 
     if (!format_ids_size)
@@ -104,8 +105,7 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         *format_ids_size = sizeof(oe_uuid_t);
         OE_RAISE(OE_BUFFER_TOO_SMALL);
     }
-    oe_uuid_t tmp_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
-    memcpy(format_ids, &tmp_uuid, sizeof(oe_uuid_t));
+    memcpy(format_ids, &_ecdsa_uuid, sizeof(oe_uuid_t));
     *format_ids_size = sizeof(oe_uuid_t);
 
     result = OE_OK;

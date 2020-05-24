@@ -34,59 +34,6 @@ const char* OE_OPTIONAL_CLAIMS[OE_OPTIONAL_CLAIMS_COUNT] = {
 // Variables storing the verifier list.
 static oe_plugin_list_node_t* verifiers = NULL;
 
-static void _print_hex_buffer_tail(
-    const char* title,
-    const uint8_t* buffer,
-    size_t size,
-    size_t tail)
-{
-    const size_t max_size = 64;
-    size_t offset = 0;
-    char* output = NULL;
-
-    // Adjust for printing only the tail
-    if (tail && size > tail)
-    {
-        offset = size - tail;
-        size = tail;
-    }
-
-    output = (char*)oe_malloc(max_size * 2 + 1);
-    if (!output)
-    {
-        OE_TRACE_ERROR("Out of memory for _print_hex_buffer()");
-        return;
-    }
-
-    if (offset)
-        OE_TRACE_VERBOSE(
-            "%s[%d ->tail %d]:", title, (int)(size + offset), (int)size);
-    else
-        OE_TRACE_VERBOSE("%s[%d]:", title, (int)size);
-
-    while (size > 0)
-    {
-        size_t segment_size = size;
-        if (segment_size > max_size)
-            segment_size = max_size;
-        oe_hex_string(
-            output, segment_size * 2 + 1, buffer + offset, segment_size);
-        output[segment_size * 2] = '\0';
-        OE_TRACE_VERBOSE("%s\n", output);
-        size -= segment_size;
-        offset += segment_size;
-    }
-    oe_free(output);
-}
-
-static void _print_hex_buffer(
-    const char* title,
-    const uint8_t* buffer,
-    size_t size)
-{
-    _print_hex_buffer_tail(title, buffer, size, 128);
-}
-
 // Finds the plugin node with the given ID. If found, the function
 // will return the node and store the pointer of the previous node
 // in prev (NULL for the head pointer). If not found, the function
@@ -254,11 +201,6 @@ oe_result_t oe_verify_evidence(
         (endorsements_buffer &&
          endorsements_buffer_size < sizeof(*endorsements)))
         OE_RAISE(OE_INVALID_PARAMETER);
-
-    _print_hex_buffer(
-        "oe_verify_evidence() got evidence",
-        (uint8_t*)evidence_buffer,
-        evidence_buffer_size);
 
     plugin_node = oe_attest_find_plugin(verifiers, &evidence->format_id, NULL);
     if (plugin_node == NULL)
