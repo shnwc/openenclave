@@ -631,8 +631,7 @@ static oe_result_t _get_verifier_plugins(
     uuid_count = 1; // In host, only support ECDSA format
 #endif
 
-    *verifiers =
-        (oe_verifier_t*)oe_malloc(sizeof(oe_verifier_t) * uuid_count);
+    *verifiers = (oe_verifier_t*)oe_malloc(sizeof(oe_verifier_t) * uuid_count);
     if (*verifiers == NULL)
         OE_RAISE(OE_OUT_OF_MEMORY);
 
