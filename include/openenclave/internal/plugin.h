@@ -270,6 +270,7 @@ struct _oe_verifier
      * @param[out] claims The list of base + custom claims.
      * @param[out] claims_length The length of the claims list.
      * @retval OE_OK on success.
+     * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
      * @retval An appropriate error code on failure.
      */
     oe_result_t (*verify_evidence)(

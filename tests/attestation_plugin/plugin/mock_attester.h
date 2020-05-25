@@ -230,7 +230,7 @@ static oe_attester_t mock_attester2 = {
     .free_evidence = &mock_free_evidence,
     .free_endorsements = &mock_free_endorsements};
 
-#endif
+#endif // OE_BUILD_ENCLAVE
 
 static oe_verifier_t mock_verifier2 = {
     .base =
@@ -242,6 +242,8 @@ static oe_verifier_t mock_verifier2 = {
     .verify_evidence = &mock_verify_evidence,
     .free_claims = &mock_free_claims};
 
+#ifdef OE_BUILD_ENCLAVE
+
 static oe_verifier_t bad_verifier = {
     .base =
         {
@@ -251,5 +253,7 @@ static oe_verifier_t bad_verifier = {
         },
     .verify_evidence = &mock_verify_evidence_bad,
     .free_claims = &mock_free_claims};
+
+#endif // OE_BUILD_ENCLAVE
 
 #endif /* _OE_MOCK_ATTESTER_H */

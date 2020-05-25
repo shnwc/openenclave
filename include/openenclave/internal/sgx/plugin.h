@@ -62,16 +62,22 @@ typedef struct _oe_sgx_plugin_claims_entry
 } oe_sgx_plugin_claims_entry_t;
 
 /**
- * Helper function that serializes a list of claims.
+ * oe_sgx_serialize_claims
+ *
+ * Serializes a list of claims.
+ *
+ * This is available in the enclave only.
  *
  * @experimental
  *
- * @param [in] custom_claims Claims to serialize.
- * @param [in] size_t custom_claims_length Length of **custom_claims**.
- * @param [out] uint8_t** claims_out Output claims.
- * @param [out] size_t* claims_size_out Length of **claims_out**.
- *
+ * @param [in] custom_claims Custom claims to serialize.
+ * @param [in] custom_claims_length Length of custom_claims.
+ * @param [out] claims_out Pointer to the address of a dynamically
+ * allocated buffer holding the serialized custom claims.
+ * @param [out] claims_size_out Size of the serialized custom claims.
  * @retval OE_OK on success.
+ * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
+ * @retval An appropriate error code on failure.
  */
 struct _OE_SHA256;
 oe_result_t oe_sgx_serialize_claims(
@@ -82,21 +88,24 @@ oe_result_t oe_sgx_serialize_claims(
     struct _OE_SHA256* hash_out);
 
 /**
- * Helper function that extracts claims from an evidence buffer.
+ * oe_sgx_extract_claims
+ *
+ * Extract claims from an evidence buffer.
+ *
+ * This is available in the enclave and host.
  *
  * @experimental
  *
- * @param[in] evidence
- *
- * @param[in] evidence_size
- *
- * @param[in] sgx_endorsements
- *
- * @param[out] claims_out
- *
- * @param[out] claims_length_out
- *
- * @retval A pointer to the SGX verifier. This function never fails.
+ * @param[in] format_id Pointer to the evidence format ID requested.
+ * @param[in] evidence Pointer to the evidence buffer.
+ * @param[in] evidence_size Size of the evidence buffer.
+ * @param[in] sgx_endorsements Pointer to the endorsements buffer.
+ * @param[out] claims_out Pointer to the address of a dynamically allocated
+ * buffer holding the list of claims (including base and custom claims).
+ * @param[out] claims_length_out The length of the claims_out list.
+ * @retval OE_OK on success.
+ * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
+ * @retval An appropriate error code on failure.
  */
 struct _oe_sgx_endorsements_t;
 oe_result_t oe_sgx_extract_claims(

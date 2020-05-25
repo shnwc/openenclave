@@ -20,13 +20,14 @@ oe_result_t oe_sgx_qe_get_target_info(
     size_t opt_params_size,
     uint8_t* target_info)
 {
+    oe_result_t result = OE_FAILURE;
+    quote3_error_t err = SGX_QL_ERROR_UNEXPECTED;
+
     OE_UNUSED(format_id);
     OE_UNUSED(opt_params);
     OE_UNUSED(opt_params_size);
 
-    oe_result_t result = OE_FAILURE;
-    quote3_error_t err =
-        sgx_qe_get_target_info((sgx_target_info_t*)target_info);
+    err = sgx_qe_get_target_info((sgx_target_info_t*)target_info);
 
     if (err != SGX_QL_SUCCESS)
         OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
@@ -42,13 +43,15 @@ oe_result_t oe_sgx_qe_get_quote_size(
     size_t opt_params_size,
     size_t* quote_size)
 {
+    oe_result_t result = OE_FAILURE;
+    uint32_t* local_quote_size = (uint32_t*)quote_size;
+    quote3_error_t err = SGX_QL_ERROR_UNEXPECTED;
+
     OE_UNUSED(format_id);
     OE_UNUSED(opt_params);
     OE_UNUSED(opt_params_size);
 
-    oe_result_t result = OE_FAILURE;
-    uint32_t* local_quote_size = (uint32_t*)quote_size;
-    quote3_error_t err = sgx_qe_get_quote_size(local_quote_size);
+    err = sgx_qe_get_quote_size(local_quote_size);
 
     if (err != SGX_QL_SUCCESS)
         OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
@@ -66,13 +69,13 @@ oe_result_t oe_sgx_qe_get_quote(
     size_t quote_size,
     uint8_t* quote)
 {
+    oe_result_t result = OE_FAILURE;
+    uint32_t local_quote_size = 0;
+    quote3_error_t err = SGX_QL_ERROR_UNEXPECTED;
+
     OE_UNUSED(format_id);
     OE_UNUSED(opt_params);
     OE_UNUSED(opt_params_size);
-
-    oe_result_t result = OE_FAILURE;
-    uint32_t local_quote_size = 0;
-    quote3_error_t err = 0;
 
     if (quote_size > OE_MAX_UINT32)
         OE_RAISE(OE_INVALID_PARAMETER);

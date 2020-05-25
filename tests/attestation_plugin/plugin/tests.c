@@ -75,7 +75,7 @@ static void _test_and_register_attester()
         OE_ALREADY_EXISTS);
 }
 
-#endif
+#endif // OE_BUILD_ENCLAVE
 
 static void _test_and_register_verifier()
 {
@@ -105,7 +105,7 @@ static void _test_and_unregister_attester()
     OE_TEST(oe_unregister_attester_plugin(&mock_attester2) == OE_NOT_FOUND);
 }
 
-#endif
+#endif // OE_BUILD_ENCLAVE
 
 static void _test_and_unregister_verifier()
 {
@@ -305,7 +305,7 @@ static void _test_verify_evidence_fail()
     OE_TEST(oe_free_endorsements(endorsements) == OE_OK);
 }
 
-#endif
+#endif // OE_BUILD_ENCLAVE
 
 void test_runtime()
 {

@@ -632,7 +632,7 @@ static oe_result_t _get_verifier_plugins(
 #endif
 
     *verifiers =
-        (oe_verifier_t*)oe_calloc(1, sizeof(oe_verifier_t) * uuid_count);
+        (oe_verifier_t*)oe_malloc(sizeof(oe_verifier_t) * uuid_count);
     if (*verifiers == NULL)
         OE_RAISE(OE_OUT_OF_MEMORY);
 

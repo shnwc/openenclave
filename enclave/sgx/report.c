@@ -149,7 +149,7 @@ oe_result_t oe_get_report_v2(
     else
         format_id = &_local_uuid;
 
-    oe_attester_initialize();
+    OE_CHECK(oe_attester_initialize());
 
     OE_CHECK(oe_find_attester_plugin(format_id, &attester));
 
@@ -232,7 +232,7 @@ oe_result_t oe_verify_report(
     else
         OE_RAISE(OE_UNSUPPORTED);
 
-    oe_verifier_initialize();
+    OE_CHECK(oe_verifier_initialize());
 
     OE_CHECK(oe_find_verifier_plugin(format_id, &verifier));
 

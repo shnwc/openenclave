@@ -311,6 +311,8 @@ static oe_result_t _get_attester_plugins(
     oe_result_t retval = OE_UNEXPECTED;
     size_t temporary_buffer_size = 0;
     uint8_t* temporary_buffer = NULL;
+    oe_uuid_t* uuid_list = NULL;
+    size_t uuid_count = 0;
 
     if (!attesters || !attesters_length)
         OE_RAISE(OE_INVALID_PARAMETER);
@@ -325,12 +327,9 @@ static oe_result_t _get_attester_plugins(
     if (temporary_buffer_size >= sizeof(oe_uuid_t))
     {
         // Allocate buffer to held the format IDs
-        temporary_buffer = oe_calloc(1, temporary_buffer_size);
+        temporary_buffer = (uint8_t*)oe_malloc(temporary_buffer_size);
         if (temporary_buffer == NULL)
-        {
-            result = OE_OUT_OF_MEMORY;
-            goto done;
-        }
+            OE_RAISE(OE_OUT_OF_MEMORY);
 
         // Get the format IDs
         result = oe_get_supported_attester_format_ids_ocall(
@@ -341,12 +340,12 @@ static oe_result_t _get_attester_plugins(
         OE_CHECK(result);
     }
 
-    oe_uuid_t* uuid_list = (oe_uuid_t*)temporary_buffer;
-    size_t uuid_count = temporary_buffer_size / sizeof(oe_uuid_t);
+    uuid_list = (oe_uuid_t*)temporary_buffer;
+    uuid_count = temporary_buffer_size / sizeof(oe_uuid_t);
 
     // Add one additional entry: the first one for local attestation
     *attesters =
-        (oe_attester_t*)oe_calloc(1, sizeof(oe_attester_t) * (uuid_count + 1));
+        (oe_attester_t*)oe_malloc(sizeof(oe_attester_t) * (uuid_count + 1));
     if (*attesters == NULL)
         OE_RAISE(OE_OUT_OF_MEMORY);
 
