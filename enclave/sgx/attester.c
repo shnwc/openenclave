@@ -322,7 +322,7 @@ static oe_result_t _get_attester_plugins(
     if (retval != OE_OK && retval != OE_BUFFER_TOO_SMALL)
     {
         OE_TRACE_ERROR("unexpected retval=%s", oe_result_str(retval));
-        OE_RAISE(OE_UNEXPECTED);
+        OE_RAISE(retval);
     }
     // It's possible that there is no supported format
     if (temporary_buffer_size >= sizeof(oe_uuid_t))
