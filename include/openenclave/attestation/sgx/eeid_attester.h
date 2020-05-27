@@ -17,14 +17,6 @@
 OE_EXTERNC_BEGIN
 
 /**
- *  The `opt_params` field for `oe_get_evidence` identical to the `opt_params`
- *  field `oe_get_report`. In other words, it is the output of
- * `oe_get_target_info` for local attestation and is ignored for remote
- *  attestation.
- */
-// typedef void* oe_sgx_plugin_opt_params;
-
-/**
  * oe_sgx_eeid_attester_initialize
  *
  * Initializes the SGX EEID attester environment configured for the platform and

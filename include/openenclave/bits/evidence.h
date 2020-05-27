@@ -23,7 +23,7 @@ OE_EXTERNC_BEGIN
  */
 #define OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG OE_REPORT_ATTRIBUTES_DEBUG
 /**
- * Bit mask for evidence of an enclave for remote attestation
+ * Bit mask for evidence of an SGX enclave for remote attestation
  */
 #define OE_EVIDENCE_ATTRIBUTES_SGX_REMOTE OE_REPORT_ATTRIBUTES_REMOTE
 /**
@@ -85,7 +85,7 @@ extern const char* OE_OPTIONAL_CLAIMS[OE_OPTIONAL_CLAIMS_COUNT];
 typedef enum _oe_policy_type
 {
     /**
-     * Enforces that time fields in the endorsements will be checked in
+     * Enforces that time fields in the endorsements will be checked
      * with the given time rather than the endorsement creation time.
      *
      * The policy will be in the form of `oe_datetime_t`.

@@ -44,7 +44,7 @@ oe_result_t oe_verifier_initialize(void);
  *
  * @param[out] formats An output pointer that will be assigned the address of
  * a dynamically allocated buffer that holds the returned list of formats
- * supported for evidence verification
+ * supported for evidence verification.
  * @param[out] formats_length A pointer that points to the length of the
  * returned formats list (number of format ID entries).
  * @retval OE_OK on success.
@@ -118,9 +118,9 @@ oe_result_t oe_verifier_free_format_settings(uint8_t* settings);
  * - attributes (uint64_t)
  *     - Attributes flags for the evidence:
  *         - OE_EVIDENCE_ATTRIBUTES_SGX_DEBUG: The evidence is for a debug mode
- *           enclave.
+ *           SGX enclave.
  *         - OE_EVIDENCE_ATTRIBUTES_SGX_REMOTE: The evidence can be used for
- *           remote attestation
+ *           remote attestation of an SGX enclave.
  * - unique_id (uint8_t[32])
  *     - The unique ID for the enclave (MRENCLAVE for SGX).
  * - signer_id (uint8_t[32])
