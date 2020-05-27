@@ -141,7 +141,8 @@ oe_result_t oe_get_report_v2(
           (report_data && report_data_size)))
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    if (!((!opt_params && !opt_params_size) || (opt_params && opt_params_size)))
+    if (!((!opt_params && !opt_params_size) ||
+          (opt_params && opt_params_size == sizeof(sgx_target_info_t))))
         OE_RAISE(OE_INVALID_PARAMETER);
 
     if (flags & OE_REPORT_FLAGS_REMOTE_ATTESTATION)

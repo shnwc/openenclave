@@ -16,8 +16,6 @@
 
 #include <time.h>
 
-#define OE_DATETIME_STRING_SIZE 21
-
 // Public key of Intel's root certificate.
 static const char* g_expected_root_certificate_key =
     "-----BEGIN PUBLIC KEY-----\n"
@@ -492,11 +490,6 @@ oe_result_t oe_verify_quote_with_sgx_endorsements(
     oe_datetime_t validity_until = {0};
     oe_datetime_t validation_time = {0};
 
-    char vtime[OE_DATETIME_STRING_SIZE];
-    char vfrom[OE_DATETIME_STRING_SIZE];
-    char vuntil[OE_DATETIME_STRING_SIZE];
-    size_t tsize = OE_DATETIME_STRING_SIZE;
-
     OE_CHECK_MSG(
         oe_verify_quote_internal(quote, quote_size),
         "Failed to verify remote quote.",
@@ -535,22 +528,16 @@ oe_result_t oe_verify_quote_with_sgx_endorsements(
         validation_time = *input_validation_time;
     }
 
-    oe_datetime_to_string(&validation_time, vtime, &tsize);
-    tsize = OE_DATETIME_STRING_SIZE;
-    oe_datetime_to_string(&validity_from, vfrom, &tsize);
-    tsize = OE_DATETIME_STRING_SIZE;
-    oe_datetime_to_string(&validity_until, vuntil, &tsize);
-    OE_TRACE_INFO(
-        "vtime=%s (%s) vfrom=%s vuntil=%s",
-        vtime,
-        (input_validation_time == NULL ? "quote" : "input"),
-        vfrom,
-        vuntil);
-
-    oe_datetime_to_string(&validation_time, vtime, &tsize);
     oe_datetime_log("Validation datetime: ", &validation_time);
     if (oe_datetime_compare(&validation_time, &validity_from) < 0)
     {
+        char vtime[OE_DATETIME_STRING_SIZE];
+        char vfrom[OE_DATETIME_STRING_SIZE];
+        size_t tsize = OE_DATETIME_STRING_SIZE;
+        oe_datetime_to_string(&validation_time, vtime, &tsize);
+        tsize = OE_DATETIME_STRING_SIZE;
+        oe_datetime_to_string(&validity_from, vfrom, &tsize);
+
         oe_datetime_log("Latest valid datetime: ", &validity_from);
         OE_RAISE_MSG(
             OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD,
@@ -561,6 +548,13 @@ oe_result_t oe_verify_quote_with_sgx_endorsements(
     }
     if (oe_datetime_compare(&validation_time, &validity_until) > 0)
     {
+        char vtime[OE_DATETIME_STRING_SIZE];
+        char vuntil[OE_DATETIME_STRING_SIZE];
+        size_t tsize = OE_DATETIME_STRING_SIZE;
+        oe_datetime_to_string(&validation_time, vtime, &tsize);
+        tsize = OE_DATETIME_STRING_SIZE;
+        oe_datetime_to_string(&validity_until, vuntil, &tsize);
+
         oe_datetime_log("Earliest expiration datetime: ", &validity_until);
         OE_RAISE_MSG(
             OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD,

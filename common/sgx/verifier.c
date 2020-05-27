@@ -510,6 +510,8 @@ done:
     return result;
 }
 
+// Gets the optional format settings for the given verifier plugin context.
+// For SGX local attestation, this would be the sgx_target_info_t struct.
 static oe_result_t _get_format_settings(
     oe_verifier_t* context,
     uint8_t** settings,
@@ -539,10 +541,6 @@ static oe_result_t _get_format_settings(
         report->version = OE_REPORT_HEADER_VERSION;
         report->report_type = OE_REPORT_TYPE_SGX_LOCAL;
         report->report_size = sizeof(sgx_report_t);
-
-        // Note: the best fit for extracting SGX target info is the function
-        // _sgx_get_target_info() in common/sgx/report.c. But this is a static
-        // function defined in another file.
 
         OE_CHECK(oe_get_target_info_v2(
             (const uint8_t*)report,
@@ -614,13 +612,8 @@ static oe_result_t _get_verifier_plugins(
     oe_verifier_t** verifiers,
     size_t* verifiers_length)
 {
-    // Serialized access from multiple threads
-    static oe_mutex_t mutex = OE_MUTEX_INITIALIZER;
     oe_result_t result = OE_UNEXPECTED;
     size_t uuid_count = 0;
-
-    if (oe_mutex_lock(&mutex) != OE_OK)
-        return result;
 
     if (!verifiers || !verifiers_length)
         OE_RAISE(OE_INVALID_PARAMETER);
@@ -657,7 +650,6 @@ static oe_result_t _get_verifier_plugins(
     result = OE_OK;
 
 done:
-    oe_mutex_unlock(&mutex);
     return result;
 }
 
@@ -674,12 +666,15 @@ oe_result_t oe_verifier_initialize(void)
     // Do nothing if verifier plugins are already initialized
     if (verifiers)
     {
+        OE_TRACE_INFO(
+            "verifiers is not NULL, verifiers_length=%d", verifiers_length);
         result = OE_OK;
         goto done;
     }
 
-    result = _get_verifier_plugins(&verifiers, &verifiers_length);
-    OE_CHECK(result);
+    OE_CHECK(_get_verifier_plugins(&verifiers, &verifiers_length));
+
+    OE_TRACE_INFO("got verifiers_length=%d plugins", verifiers_length);
 
     for (size_t i = 0; i < verifiers_length; i++)
     {
@@ -690,7 +685,6 @@ oe_result_t oe_verifier_initialize(void)
 
 done:
     oe_mutex_unlock(&init_mutex);
-    OE_TRACE_INFO("verifiers_length=%d", verifiers_length);
     return result;
 }
 
@@ -705,12 +699,22 @@ oe_result_t oe_verifier_shutdown(void)
     // or there is no supported plugin
     if (!verifiers)
     {
+        OE_TRACE_INFO("verifiers is NULL");
         result = OE_OK;
         goto done;
     }
 
+    OE_TRACE_INFO("free verifiers_length=%d plugins", verifiers_length);
+
     for (size_t i = 0; i < verifiers_length; i++)
+    {
         result = oe_unregister_verifier_plugin(verifiers + i);
+        if (result != OE_OK)
+            OE_TRACE_ERROR(
+                "oe_unregister_verifier_plugin() #%lu failed with %s",
+                i,
+                oe_result_str(result));
+    }
 
     oe_free(verifiers);
     verifiers = NULL;

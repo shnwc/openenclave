@@ -305,8 +305,6 @@ static oe_result_t _get_attester_plugins(
     oe_attester_t** attesters,
     size_t* attesters_length)
 {
-    // Serialized access from multiple threads
-    static oe_mutex_t mutex = OE_MUTEX_INITIALIZER;
     oe_result_t result = OE_UNEXPECTED;
     oe_result_t retval = OE_UNEXPECTED;
     size_t temporary_buffer_size = 0;
@@ -317,12 +315,15 @@ static oe_result_t _get_attester_plugins(
     if (!attesters || !attesters_length)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    OE_TEST(oe_mutex_lock(&mutex) == 0);
-
     // Get the size of the needed buffer
     result = oe_get_supported_attester_format_ids_ocall(
         (uint32_t*)&retval, NULL, 0, &temporary_buffer_size);
     OE_CHECK(result);
+    if (retval != OE_OK && retval != OE_BUFFER_TOO_SMALL)
+    {
+        OE_TRACE_ERROR("unexpected retval=%s", oe_result_str(retval));
+        OE_RAISE(OE_UNEXPECTED);
+    }
     // It's possible that there is no supported format
     if (temporary_buffer_size >= sizeof(oe_uuid_t))
     {
@@ -338,6 +339,7 @@ static oe_result_t _get_attester_plugins(
             temporary_buffer_size,
             &temporary_buffer_size);
         OE_CHECK(result);
+        OE_CHECK(retval);
     }
 
     uuid_list = (oe_uuid_t*)temporary_buffer;
@@ -376,7 +378,6 @@ done:
         oe_free(temporary_buffer);
         temporary_buffer = NULL;
     }
-    oe_mutex_unlock(&mutex);
     return result;
 }
 
@@ -393,12 +394,15 @@ oe_result_t oe_attester_initialize(void)
     // Do nothing if attester plugins are already initialized
     if (attesters)
     {
+        OE_TRACE_INFO(
+            "attesters is not NULL, attesters_length=%d", attesters_length);
         result = OE_OK;
         goto done;
     }
 
-    result = _get_attester_plugins(&attesters, &attesters_length);
-    OE_CHECK(result);
+    OE_CHECK(_get_attester_plugins(&attesters, &attesters_length));
+
+    OE_TRACE_INFO("got attesters_length=%d plugins", attesters_length);
 
     for (size_t i = 0; i < attesters_length; i++)
     {
@@ -410,7 +414,6 @@ oe_result_t oe_attester_initialize(void)
 
 done:
     oe_mutex_unlock(&mutex);
-    OE_TRACE_INFO("attesters_length=%d", attesters_length);
     return result;
 }
 
@@ -426,12 +429,22 @@ oe_result_t oe_attester_shutdown(void)
     // or there is no supported plugin
     if (!attesters)
     {
+        OE_TRACE_INFO("attesters is NULL");
         result = OE_OK;
         goto done;
     }
 
+    OE_TRACE_INFO("free attesters_length=%d plugins", attesters_length);
+
     for (size_t i = 0; i < attesters_length; i++)
+    {
         result = oe_unregister_attester_plugin(attesters + i);
+        if (result != OE_OK)
+            OE_TRACE_ERROR(
+                "oe_unregister_attester_plugin() #%lu failed with %s",
+                i,
+                oe_result_str(result));
+    }
 
     oe_free(attesters);
     attesters = NULL;

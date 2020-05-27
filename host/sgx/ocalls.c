@@ -447,7 +447,7 @@ oe_result_t oe_get_supported_attester_format_ids_ocall(
     result =
         sgx_get_supported_attester_format_ids(format_ids, &format_ids_size);
 
-    if (format_ids_size)
+    if (format_ids_size_out)
         *format_ids_size_out = format_ids_size;
 
     return result;
