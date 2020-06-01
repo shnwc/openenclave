@@ -141,9 +141,10 @@ or out-of-process by working with a background service (called AESM) running
 on the same platform.
   - On Linux platforms, access control for quote generation is enforced by
   the SGX Linux driver.
-    - Every process that hosts the Quoting
-    Enclave (QE) is required to run in an account added to a special group `sgx_prv`,
+    - Every process that hosts a Quoting
+    Enclave (QE) is required to run in an account that belongs to a special group `sgx_prv`,
     as documented in the DCAP library [readme](https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/QuoteGeneration/README.md) and the DCAP driver [readme](https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/master/driver/linux/README.md).
+      - This access control mechanism does not require an QE to be signed by Intel.
       - Note: `sgx_prv` is an SGX provisioning access control mechanism implemented
       in the DCAP driver since version V1.22, and in the new upstream SGX Linux driver.
     - Impact to DCAP library usage:
@@ -151,8 +152,14 @@ on the same platform.
       is required to run in an account that belongs to the special `sgx_prv` group.
       - On the other hand, for out-of-process quote generation, only the AESM
       service process account needs to be added to the special group `sgx_prv`.
-  - Note: on Windows platforms quote generation access control stays the same.
-  QE's are required to be white-listed.
+  - Note: on Windows platforms, quote generation access control takes a
+  different approach. The QE in the DCAP library is permitted by the
+  Intel-provided Launch Control (LC) driver set for quote generation, and can run
+  in any user account.
+    - This LC driver set only allows an Intel-signed QE for quote generation.
+    - More details about the LC driver set and Windows access control for quote
+    generation are described in document
+    [Intel® Software Guard Extensions Data Center Attestation Primitives Installation Guide For Windows* OS](https://download.01.org/intel-sgx/latest/dcap-latest/windows/docs/Intel_SGX_DCAP_Windows_SW_Installation_Guide.pdf).
 - The quote-ex library supports generation of SGX quotes in multiple formats
 (including ECDSA-p256 and EPID variations).
 With quote-ex, quote generation is always done out-of-process
