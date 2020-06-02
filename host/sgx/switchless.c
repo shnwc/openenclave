@@ -208,7 +208,20 @@ oe_result_t oe_start_switchless_manager(
         }
     }
 
+    // Inform the enclave about the switchless manager through an ECALL
+    if (num_host_workers > 0)
+    {
+        OE_CHECK(oe_sgx_init_context_switchless_ecall(
+            enclave,
+            &result_out,
+            manager->host_worker_contexts,
+            manager->num_host_workers));
+        OE_CHECK(result_out);
+    }
+
     // Start the enclave worker threads, and assign each one a private context.
+    // ecall worker threads are initialized after the regular ecall above to
+    // oe_sgx_init_context_switchless_ecall is complete.
     for (size_t i = 0; i < num_enclave_workers; i++)
     {
         OE_TRACE_INFO("Creating switchless enclave worker thread %d\n", (int)i);
@@ -222,21 +235,20 @@ oe_result_t oe_start_switchless_manager(
         {
             OE_RAISE(OE_THREAD_CREATE_ERROR);
         }
+
+        // Wait until the enclave worker thread has started.
+        // If so, spin_count and/or total_spin_count will be non zero.
+        // This ensures that each ecall worker thread has a dedicated tcs.
+        volatile oe_enclave_worker_context_t* ctx =
+            &manager->enclave_worker_contexts[i];
+        while (!ctx->spin_count && !ctx->total_spin_count)
+        {
+            oe_yield_cpu();
+        }
     }
 
     // Each enclave has at most one switchless manager.
     enclave->switchless_manager = manager;
-
-    // Inform the enclave about the switchless manager through an ECALL
-    if (num_host_workers > 0)
-    {
-        OE_CHECK(oe_sgx_init_context_switchless_ecall(
-            enclave,
-            &result_out,
-            manager->host_worker_contexts,
-            manager->num_host_workers));
-        OE_CHECK(result_out);
-    }
 
     result = OE_OK;
 
@@ -431,7 +443,7 @@ oe_result_t oe_switchless_call_enclave_function(
 /*
  * Stubs for switchless.edl ecalls if they are not included in EDL
  */
-static oe_result_t _oe_sgx_init_context_switchless_ecall(
+OE_UNUSED_FUNC static oe_result_t _oe_sgx_init_context_switchless_ecall(
     oe_enclave_t* enclave,
     oe_result_t* _retval,
     oe_host_worker_context_t* host_worker_contexts,
@@ -444,7 +456,8 @@ static oe_result_t _oe_sgx_init_context_switchless_ecall(
     return OE_UNSUPPORTED;
 }
 
-static oe_result_t _oe_sgx_switchless_enclave_worker_thread_ecall(
+OE_UNUSED_FUNC static oe_result_t
+_oe_sgx_switchless_enclave_worker_thread_ecall(
     oe_enclave_t* enclave,
     oe_enclave_worker_context_t* context)
 {

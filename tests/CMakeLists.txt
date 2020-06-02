@@ -16,6 +16,12 @@ if (LVI_MITIGATION MATCHES ControlFlow AND LVI_MITIGATION_SKIP_TESTS)
   message("LVI_MITIGATION_SKIP_TESTS set - skip all tests with LVI mitigation")
 endif ()
 
+if (OE_SGX)
+  set(PLATFORM_EDL_DIR ${PROJECT_SOURCE_DIR}/include/openenclave/edl/sgx)
+elseif (OE_TRUSTZONE)
+  set(PLATFORM_EDL_DIR ${PROJECT_SOURCE_DIR}/include/openenclave/edl/optee)
+endif ()
+
 add_subdirectory(mem)
 add_subdirectory(safecrt)
 add_subdirectory(safemath)
@@ -34,6 +40,7 @@ if (OE_SGX)
   add_subdirectory(switchless_threads)
   add_subdirectory(switchless_nestedcalls)
   add_subdirectory(switchless_worksleep)
+  add_subdirectory(switchless_one_tcs)
 endif ()
 
 if (UNIX
@@ -110,10 +117,7 @@ endif ()
 
 if (UNIX)
   if (OE_SGX)
-    # This test is currently disabled due to differences in SGX DCAP driver
-    # versions. See child_process/README.md for more info.
-    # add_subdirectory(child_process)
-
+    add_subdirectory(child_process)
     add_subdirectory(cmake_name_conflict)
   endif ()
   add_subdirectory(libc)

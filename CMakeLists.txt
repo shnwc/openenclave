@@ -7,6 +7,19 @@
 # https://rix0r.nl/blog/2015/08/13/cmake-guide/
 cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
 
+# Utility to ensure specific submodules are present.
+function (check_submodule_not_empty path)
+  file(GLOB submodule_files "${path}/*")
+  list(LENGTH submodule_files number)
+  if (${number} EQUAL 0)
+    message(
+      FATAL_ERROR
+        "Submodule ${path} is empty. You can initialize the submodule now with \
+         'git submodule update --recursive --init',\
+         or during 'git clone' by passing '--recursive'.")
+  endif ()
+endfunction ()
+
 # Read version from "VERSION" file.
 file(STRINGS "VERSION" OE_VERSION_WITH_V)
 string(REGEX REPLACE "^v" "" OE_VERSION ${OE_VERSION_WITH_V})
@@ -47,7 +60,7 @@ if (UNIX AND LVI_MITIGATION MATCHES ControlFlow)
     message(FATAL_ERROR "LVI_MITIGATION_BINDIR is not specified.")
   endif ()
   include(configure_lvi_mitigation_build)
-  configure_lvi_mitigation_build(${LVI_MITIGATION_BINDIR})
+  configure_lvi_mitigation_build(BINDIR ${LVI_MITIGATION_BINDIR})
 endif ()
 
 project(
@@ -225,7 +238,7 @@ endif ()
 option(
   COMPILE_SYSTEM_EDL
   "Build system ecalls and ocalls into OE libraries. If not set, they must be included by application EDL to use."
-  ON)
+  OFF)
 
 option(BUILD_TESTS "Build OE tests" ON)
 
@@ -259,20 +272,15 @@ include(add_enclave_test)
 add_subdirectory(include)
 add_subdirectory(host)
 
-# Tests are not ported to include system edl files in order to use system
-# ocalls and ecalls.
-if (COMPILE_SYSTEM_EDL)
-
+# Tests and samples have been ported to manually include system edl files.
+# They can no longer be used when system EDL is builtin.
+if (NOT COMPILE_SYSTEM_EDL)
   if (BUILD_TESTS)
     add_subdirectory(tests)
   endif ()
 
   if (BUILD_ENCLAVES)
     add_subdirectory(samples)
-  endif ()
-else ()
-  if (BUILD_TESTS AND OE_SGX)
-    add_subdirectory(tests/exclude_system_edl)
   endif ()
 endif ()
 

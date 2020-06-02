@@ -12,8 +12,6 @@ Param(
     # We skip the hash check for the vs_buildtools.exe file because it is regularly updated without a change to the URL, unfortunately.
     [string]$VSBuildToolsURL = 'https://aka.ms/vs/15/release/vs_buildtools.exe',
     [string]$VSBuildToolsHash = '',
-    [string]$OCamlURL = 'https://www.ocamlpro.com/pub/ocpwin/ocpwin-builds/ocpwin64/20160113/ocpwin64-20160113-4.02.1+ocp1-mingw64.zip',
-    [string]$OCamlHash = '369F900F7CDA543ABF674520ED6004CC75008E10BEED0D34845E8A42866D0F3A',
     [string]$NodeURL = 'https://nodejs.org/dist/v10.16.3/node-v10.16.3-x64.msi',
     [string]$NodeHash = 'F68B75EEA46232ADB8FD38126C977DC244166D29E7C6CD2DF930B460C38590A9',
     [string]$Clang7URL = 'http://releases.llvm.org/7.0.1/LLVM-7.0.1-win64.exe',
@@ -30,8 +28,8 @@ Param(
     [string]$IntelDCAPHash = '39DB3E183E79400A4A1C635E67A927C8E5C75A19E5A2A7FC537E1B24D8FDF42E',
     [string]$VCRuntime2012URL = 'https://download.microsoft.com/download/1/6/B/16B06F60-3B20-4FF2-B699-5E9B7962F9AE/VSU_4/vcredist_x64.exe',
     [string]$VCRuntime2012Hash = '681BE3E5BA9FD3DA02C09D7E565ADFA078640ED66A0D58583EFAD2C1E3CC4064',
-    [string]$AzureDCAPNupkgURL = 'https://www.nuget.org/api/v2/package/Microsoft.Azure.DCAP/1.4.2',
-    [string]$AzureDCAPNupkgHash = 'D1EB6842CE2F3E1243298A440743687BD16FE6B2AF9F1745837D4C445EA0A930',
+    [string]$AzureDCAPNupkgURL = 'https://www.nuget.org/api/v2/package/Microsoft.Azure.DCAP/1.5.0',
+    [string]$AzureDCAPNupkgHash = 'CC1C3EAE8C51FEFC57D067FB11ACFC3A982F8FCBFF2502051EAAD16B14665830',
     [string]$Python3ZipURL = 'https://www.python.org/ftp/python/3.7.4/python-3.7.4-embed-amd64.zip',
     [string]$Python3ZipHash = 'FB65E5CD595AD01049F73B47BC0EE23FD03F0CBADC56CB318990CEE83B37761B',
     [string]$NSISURL = 'https://oejenkins.blob.core.windows.net/oejenkins/nsis-3.05-setup.exe',
@@ -63,11 +61,6 @@ $PACKAGES = @{
         "url" = $VSBuildToolsURL
         "hash" = $VSBuildToolsHash
         "local_file" = Join-Path $PACKAGES_DIRECTORY "vs_buildtools.exe"
-    }
-    "ocaml" = @{
-        "url" = $OCamlURL
-        "hash" = $OCamlHash
-        "local_file" = Join-Path $PACKAGES_DIRECTORY "ocpwin64.zip"
     }
     "node" = @{
         "url" = $NodeURL
@@ -458,19 +451,6 @@ function Install-VisualStudio {
                                    "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2017\BuildTools\Common7\Tools")
 }
 
-function Install-OCaml {
-    $installDir = Join-Path $env:ProgramFiles "OCaml"
-    $tmpDir = Join-Path $PACKAGES_DIRECTORY "ocpwin64"
-    if(Test-Path -Path $tmpDir) {
-        Remove-Item -Recurse -Force -Path $tmpDir
-    }
-    Install-ZipTool -ZipPath $PACKAGES["ocaml"]["local_file"] `
-                    -InstallDirectory $tmpDir `
-                    -EnvironmentPath @("$installDir\bin")
-    New-Directory -Path $installDir -RemoveExisting
-    Move-Item -Path "$tmpDir\*\*" -Destination $installDir
-}
-
 function Install-Node {
     $installDir = Join-Path $env:ProgramFiles "nodejs"
     Install-Tool -InstallerPath $PACKAGES["node"]["local_file"] `
@@ -720,7 +700,6 @@ try {
     Start-LocalPackagesDownload
 
     Install-7Zip
-    Install-OCaml
     Install-Nuget
     Install-Python3
     Install-VisualStudio
