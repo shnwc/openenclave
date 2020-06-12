@@ -19,6 +19,12 @@ OE_EXTERNC_BEGIN
 
 #define OE_FORMAT_UUID_SGX_ECDSA_P256 OE_SGX_PLUGIN_UUID
 
+#define OE_FORMAT_UUID_SGX_ECDSA_P384                                     \
+    {                                                                     \
+        0xac, 0x17, 0x68, 0x6f, 0x37, 0x0c, 0x46, 0x24, 0x91, 0x4a, 0x32, \
+            0xdc, 0x90, 0x97, 0x3d, 0x12                                  \
+    }
+
 #define OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION                              \
     {                                                                     \
         0x09, 0x26, 0x8c, 0x33, 0x6e, 0x0b, 0x45, 0xe5, 0x8a, 0x27, 0x15, \
@@ -36,6 +42,16 @@ OE_EXTERNC_BEGIN
         0x5c, 0x35, 0xd2, 0x90, 0xa2, 0xc2, 0x4c, 0x55, 0x9e, 0x13, 0x5a, \
             0xd7, 0x32, 0x74, 0x6c, 0x88                                  \
     }
+
+#if !defined(OE_FORMAT_UUID_SGX_UNKNOWN)
+
+#define OE_FORMAT_UUID_SGX_UNKNOWN                                        \
+    {                                                                     \
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
+            0x00, 0x00, 0x00, 0x00, 0x00                                  \
+    }
+
+#endif
 
 #define OE_SGX_PLUGIN_CLAIMS_VERSION 1
 

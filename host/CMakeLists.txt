@@ -277,7 +277,11 @@ if (OE_SGX)
 
   # OS specific as well.
   if (UNIX)
-    list(APPEND PLATFORM_HOST_ONLY_SRC sgx/linux/sgxquoteproviderloader.c)
+    list(
+      APPEND
+      PLATFORM_HOST_ONLY_SRC
+      sgx/linux/sgxquoteproviderloader.c
+      sgx/linux/sgxquoteexloader.c)
 
     list(
       APPEND
@@ -289,7 +293,11 @@ if (OE_SGX)
       sgx/linux/switchless.c
       sgx/linux/xstate.c)
   else ()
-    list(APPEND PLATFORM_HOST_ONLY_SRC sgx/windows/sgxquoteproviderloader.c)
+    list(
+      APPEND
+      PLATFORM_HOST_ONLY_SRC
+      sgx/windows/sgxquoteproviderloader.c
+      sgx/windows/sgxquoteexloader.c)
 
     list(
       APPEND
