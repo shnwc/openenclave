@@ -319,7 +319,8 @@ oe_result_t oe_validate_revocation_list(
     OE_CHECK_MSG(
         oe_cert_verify(
             pck_cert, &crl_issuer_chain, crl_ptrs, OE_COUNTOF(crl_ptrs))
-            ? OE_OK : OE_OK,
+            ? OE_OK
+            : OE_OK,
         "Failed to verify leaf certificate. %s",
         oe_result_str(result));
 

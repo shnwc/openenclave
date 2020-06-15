@@ -42,32 +42,32 @@ struct _report_t;
 typedef struct _report_t sgx_report_t;
 
 typedef sgx_status_t (*sgx_select_att_key_id_t)(
-    const uint8_t *p_att_key_id_list,
+    const uint8_t* p_att_key_id_list,
     uint32_t att_key_id_list_size,
-    sgx_att_key_id_t *p_selected_key_id);
+    sgx_att_key_id_t* p_selected_key_id);
 
 typedef sgx_status_t (*sgx_init_quote_ex_t)(
     const sgx_att_key_id_t* p_att_key_id,
-    sgx_target_info_t *p_qe_target_info,
+    sgx_target_info_t* p_qe_target_info,
     size_t* p_pub_key_id_size,
     uint8_t* p_pub_key_id);
 
 typedef sgx_status_t (*sgx_get_quote_size_ex_t)(
-    const sgx_att_key_id_t *p_att_key_id,
+    const sgx_att_key_id_t* p_att_key_id,
     uint32_t* p_quote_size);
 
 typedef sgx_status_t (*sgx_get_quote_ex_t)(
-    const sgx_report_t *p_app_report,
-    const sgx_att_key_id_t *p_att_key_id,
-    sgx_qe_report_info_t *p_qe_report_info,
-    uint8_t *p_quote,
+    const sgx_report_t* p_app_report,
+    const sgx_att_key_id_t* p_att_key_id,
+    sgx_qe_report_info_t* p_qe_report_info,
+    uint8_t* p_quote,
     uint32_t quote_size);
 
 typedef sgx_status_t (*sgx_get_supported_att_key_id_num_t)(
-    uint32_t *p_att_key_id_num);
+    uint32_t* p_att_key_id_num);
 
 typedef sgx_status_t (*sgx_get_supported_att_key_ids_t)(
-    sgx_att_key_id_ext_t *p_att_key_id_list,
+    sgx_att_key_id_ext_t* p_att_key_id_list,
     uint32_t att_key_id_num);
 
 typedef struct _oe_sgx_quote_ex_library_t
@@ -93,7 +93,7 @@ typedef struct _oe_sgx_quote_ex_library_t
 
 oe_result_t oe_initialize_quote_ex_library(void);
 
-void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t * library);
+void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t* library);
 
 #define SGX_SELECT_ATT_KEY_ID_NAME "sgx_select_att_key_id"
 #define SGX_INIT_QUOTE_EX_NAME "sgx_init_quote_ex"

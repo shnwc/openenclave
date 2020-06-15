@@ -4,11 +4,11 @@
 
 #include "sgxquote.h"
 #include <openenclave/internal/defs.h>
+#include <openenclave/internal/hexdump.h>
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/sgx/plugin.h>
-#include <openenclave/internal/trace.h>
 #include <openenclave/internal/tests.h>
-#include <openenclave/internal/hexdump.h>
+#include <openenclave/internal/trace.h>
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_quote_3.h>
 #include <string.h>
@@ -16,9 +16,9 @@
 
 #if __has_include(<sgx_uae_quote_ex.h>)
 #define OE_LINK_SGX_QUOTE_EX
-#include "sgxquote_ex.h"
 #include <sgx_uae_quote_ex.h>
 #include "../hostthread.h"
+#include "sgxquote_ex.h"
 #endif
 
 // Check consistency with OE definition.
@@ -38,10 +38,9 @@ OE_STATIC_ASSERT(sizeof(sgx_att_key_id_ext_t) == sizeof(sgx_att_key_id_t));
 static oe_sgx_quote_ex_library_t _quote_ex_library = {0};
 static const oe_uuid_t _unknown_uuid = {OE_FORMAT_UUID_SGX_UNKNOWN};
 static const oe_uuid_t _ecdsa_p384_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P384};
-static const oe_uuid_t _epid_linkable_uuid =
-    {OE_FORMAT_UUID_SGX_EPID_LINKABLE};
-static const oe_uuid_t _epid_unlinkable_uuid =
-    {OE_FORMAT_UUID_SGX_EPID_UNLINKABLE};
+static const oe_uuid_t _epid_linkable_uuid = {OE_FORMAT_UUID_SGX_EPID_LINKABLE};
+static const oe_uuid_t _epid_unlinkable_uuid = {
+    OE_FORMAT_UUID_SGX_EPID_UNLINKABLE};
 
 static sgx_att_key_id_ext_t* _format_id_to_key_id(const oe_uuid_t* format_id)
 {
@@ -125,7 +124,7 @@ oe_result_t oe_sgx_qe_get_target_info(
         sgx_status_t status = SGX_ERROR_UNEXPECTED;
         sgx_att_key_id_ext_t updated_key_id = {{0}};
         size_t tmp_size = 0;
-        uint8_t *tmp_buffer = NULL;
+        uint8_t* tmp_buffer = NULL;
         sgx_target_info_t tmp_target_info;
 
         sgx_att_key_id_ext_t* key_id = _format_id_to_key_id(format_id);
@@ -134,8 +133,7 @@ oe_result_t oe_sgx_qe_get_target_info(
 
         // Update key ID with input SP ID for EPID quoting
         memcpy(&updated_key_id, key_id, sizeof(*key_id));
-        if (
-            key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
+        if (key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
             key_id->base.algorithm_id == SGX_QL_ALG_EPID_UNLINKABLE)
         {
             if (opt_params && opt_params_size == sizeof(key_id->spid))
@@ -144,25 +142,31 @@ oe_result_t oe_sgx_qe_get_target_info(
 
         status = _quote_ex_library.sgx_init_quote_ex(
             (sgx_att_key_id_t*)&updated_key_id,
-            &tmp_target_info, &tmp_size, NULL);
+            &tmp_target_info,
+            &tmp_size,
+            NULL);
 
         if (status != SGX_SUCCESS)
             OE_RAISE_MSG(
                 OE_PLATFORM_ERROR,
-                "sgx_init_quote_ex(NULL) returned 0x%x\n", status);
+                "sgx_init_quote_ex(NULL) returned 0x%x\n",
+                status);
 
         tmp_buffer = (uint8_t*)oe_malloc(tmp_size);
         OE_TEST(tmp_buffer);
 
         status = _quote_ex_library.sgx_init_quote_ex(
             (sgx_att_key_id_t*)&updated_key_id,
-            &tmp_target_info, &tmp_size, tmp_buffer);
+            &tmp_target_info,
+            &tmp_size,
+            tmp_buffer);
         oe_free(tmp_buffer);
 
         if (status != SGX_SUCCESS)
             OE_RAISE_MSG(
                 OE_PLATFORM_ERROR,
-                "sgx_init_quote_ex(tmp_buffer) returned 0x%x\n", status);
+                "sgx_init_quote_ex(tmp_buffer) returned 0x%x\n",
+                status);
 
         memcpy(target_info, &tmp_target_info, sizeof(sgx_target_info_t));
 
@@ -213,8 +217,7 @@ oe_result_t oe_sgx_qe_get_quote_size(
 
         // Update key ID with input SP ID for EPID quoting
         memcpy(&updated_key_id, key_id, sizeof(*key_id));
-        if (
-            key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
+        if (key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
             key_id->base.algorithm_id == SGX_QL_ALG_EPID_UNLINKABLE)
         {
             if (opt_params && opt_params_size == sizeof(key_id->spid))
@@ -227,7 +230,8 @@ oe_result_t oe_sgx_qe_get_quote_size(
         if (status != SGX_SUCCESS)
             OE_RAISE_MSG(
                 OE_PLATFORM_ERROR,
-                "sgx_get_quote_size_ex() returned 0x%x\n", status);
+                "sgx_get_quote_size_ex() returned 0x%x\n",
+                status);
 
         OE_TRACE_INFO("local_quote_size = %lu\n", local_quote_size);
 
@@ -266,9 +270,8 @@ oe_result_t oe_sgx_qe_get_quote(
     uint32_t local_quote_size = (uint32_t)quote_size;
     quote3_error_t err = SGX_QL_ERROR_UNEXPECTED;
 
-    if (
-        !format_id || !report || !quote ||
-        !quote_size || quote_size > OE_MAX_UINT32)
+    if (!format_id || !report || !quote || !quote_size ||
+        quote_size > OE_MAX_UINT32)
         OE_RAISE(OE_INVALID_PARAMETER);
 
 #ifdef OE_LINK_SGX_QUOTE_EX
@@ -284,8 +287,7 @@ oe_result_t oe_sgx_qe_get_quote(
 
         // Update key ID with input SP ID for EPID quoting
         memcpy(&updated_key_id, key_id, sizeof(*key_id));
-        if (
-            key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
+        if (key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
             key_id->base.algorithm_id == SGX_QL_ALG_EPID_UNLINKABLE)
         {
             if (opt_params && opt_params_size == sizeof(key_id->spid))
@@ -302,11 +304,12 @@ oe_result_t oe_sgx_qe_get_quote(
         if (status != SGX_SUCCESS)
             OE_RAISE_MSG(
                 OE_PLATFORM_ERROR,
-                "sgx_get_quote_ex() returned 0x%x\n", status);
+                "sgx_get_quote_ex() returned 0x%x\n",
+                status);
 
-         OE_TRACE_INFO(
-             "quote_ex got quote for algorithm_id=%d\n",
-             key_id->base.algorithm_id);
+        OE_TRACE_INFO(
+            "quote_ex got quote for algorithm_id=%d\n",
+            key_id->base.algorithm_id);
 
         result = OE_OK;
         goto done;
@@ -346,8 +349,7 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         size_t index = 0;
 
         if (count &&
-            (!format_ids ||
-             *format_ids_size < sizeof(oe_uuid_t) * count))
+            (!format_ids || *format_ids_size < sizeof(oe_uuid_t) * count))
         {
             *format_ids_size = sizeof(oe_uuid_t) * count;
             OE_RAISE(OE_BUFFER_TOO_SMALL);
@@ -363,7 +365,7 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
                 ((uint8_t*)format_ids) + sizeof(oe_uuid_t) * index,
                 _quote_ex_library.uuid + i,
                 sizeof(oe_uuid_t));
-            index ++;
+            index++;
         }
 
         OE_TEST(index == count);
@@ -374,7 +376,9 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         _print_hex_buf_tail("format_ids: ", format_ids, *format_ids_size, 0);
         _print_hex_buf_tail(
             "_quote_ex_library.uuid: ",
-            (uint8_t*)_quote_ex_library.uuid, *format_ids_size, 0);
+            (uint8_t*)_quote_ex_library.uuid,
+            *format_ids_size,
+            0);
 
         result = OE_OK;
         goto done;
@@ -416,14 +420,15 @@ static void _load_quote_ex_library_once(void)
         uint32_t att_key_id_num = 0;
         uint32_t mapped_key_id_count = 0;
         sgx_status_t status = SGX_ERROR_UNEXPECTED;
-        status = _quote_ex_library.sgx_get_supported_att_key_id_num(
-            &att_key_id_num);
+        status =
+            _quote_ex_library.sgx_get_supported_att_key_id_num(&att_key_id_num);
         if (status != SGX_SUCCESS || att_key_id_num == 0)
         {
             OE_TRACE_ERROR(
                 "_load_quote_ex_library_once() "
                 "sgx_get_supported_att_key_id_num() status=%d num=%d\n",
-                status, att_key_id_num);
+                status,
+                att_key_id_num);
             OE_RAISE(OE_QUOTE_PROVIDER_CALL_ERROR);
         }
 
@@ -447,7 +452,7 @@ static void _load_quote_ex_library_once(void)
         for (uint32_t i = 0; i < att_key_id_num; i++)
         {
             sgx_att_key_id_ext_t* key = tmp_key_id + i;
-            const oe_uuid_t *uuid = NULL;
+            const oe_uuid_t* uuid = NULL;
 
             OE_TRACE_INFO("algorithm_id=%d", key->base.algorithm_id);
 
@@ -456,22 +461,22 @@ static void _load_quote_ex_library_once(void)
                 case SGX_QL_ALG_EPID_UNLINKABLE:
                     uuid = &_epid_unlinkable_uuid;
                     tmp_mapped[i] = true;
-                    mapped_key_id_count ++;
+                    mapped_key_id_count++;
                     break;
                 case SGX_QL_ALG_EPID_LINKABLE:
                     uuid = &_epid_linkable_uuid;
                     tmp_mapped[i] = true;
-                    mapped_key_id_count ++;
+                    mapped_key_id_count++;
                     break;
                 case SGX_QL_ALG_ECDSA_P256:
                     uuid = &_ecdsa_p256_uuid;
                     tmp_mapped[i] = true;
-                    mapped_key_id_count ++;
+                    mapped_key_id_count++;
                     break;
                 case SGX_QL_ALG_ECDSA_P384:
                     uuid = &_ecdsa_p384_uuid;
                     tmp_mapped[i] = true;
-                    mapped_key_id_count ++;
+                    mapped_key_id_count++;
                     break;
                 default:
                     uuid = &_unknown_uuid;
@@ -495,7 +500,8 @@ static void _load_quote_ex_library_once(void)
 
         OE_TRACE_INFO(
             "key_id_count=%lu mapped=%lu\n",
-            att_key_id_num, mapped_key_id_count);
+            att_key_id_num,
+            mapped_key_id_count);
 
         result = OE_OK;
     }

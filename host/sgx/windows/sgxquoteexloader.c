@@ -9,15 +9,15 @@
 #include <openenclave/internal/defs.h>
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/trace.h>
-#include <string.h>
 #include <stdlib.h>
-#include "../sgxquote_ex.h"
+#include <string.h>
 #include "../../../common/oe_host_stdlib.h"
+#include "../sgxquote_ex.h"
 #endif
 
 #ifdef OE_LINK_SGX_QUOTE_EX
 
-static const char *_quote_ex_library_file_name = "libsgx_quote_ex.dll";
+static const char* _quote_ex_library_file_name = "libsgx_quote_ex.dll";
 
 static oe_sgx_quote_ex_library_t* _quote_ex_library = NULL;
 
@@ -47,7 +47,7 @@ static void _unload_quote_ex_library(void)
     }
 }
 
-void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t * library)
+void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
 {
     oe_result_t result = OE_UNEXPECTED;
 
@@ -74,9 +74,8 @@ void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t * library)
                     "sgxquoteexprovider: sgx_select_att_key_id not fuond\n");
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
-            library->sgx_init_quote_ex =
-                (sgx_init_quote_ex_t)GetProcAddress(
-                    _handle, SGX_INIT_QUOTE_EX_NAME);
+            library->sgx_init_quote_ex = (sgx_init_quote_ex_t)GetProcAddress(
+                _handle, SGX_INIT_QUOTE_EX_NAME);
             if (!library->sgx_init_quote_ex)
             {
                 OE_TRACE_ERROR(
@@ -105,9 +104,8 @@ void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t * library)
                     _handle, SGX_GET_SUPPORTED_ATT_KEY_ID_NUM_NAME);
             if (!library->sgx_get_supported_att_key_id_num)
             {
-                OE_TRACE_ERROR(
-                    "sgxquoteexprovider: "
-                    "sgx_get_supported_att_key_id_num not fuond\n");
+                OE_TRACE_ERROR("sgxquoteexprovider: "
+                               "sgx_get_supported_att_key_id_num not fuond\n");
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
             library->sgx_get_supported_att_key_ids =
@@ -115,9 +113,8 @@ void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t * library)
                     _handle, SGX_GET_SUPPORTED_ATT_KEY_IDS_NAME);
             if (!library->sgx_get_supported_att_key_ids)
             {
-                OE_TRACE_ERROR(
-                    "sgxquoteexprovider: "
-                    "sgx_get_supported_att_key_ids not fuond\n");
+                OE_TRACE_ERROR("sgxquoteexprovider: "
+                               "sgx_get_supported_att_key_ids not fuond\n");
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
 
