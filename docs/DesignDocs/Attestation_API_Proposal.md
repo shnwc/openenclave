@@ -12,7 +12,7 @@ This proposal is based on these efforts:
 - Design document [Attestation V3 Update]:
 [Custom Attestation Data Formats for Open Enclave V3 Updates](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/CustomAttestation_V3.md).
 - Discussion in [Issue #2729]: [Outstanding issues on attestation plugin design](https://github.com/openenclave/openenclave/issues/2729).
-- Proposal to add attestation evidence format support doc [PR #3089](https://github.com/openenclave/openenclave/pull/3089).
+- Proposal to add attestation evidence format support [[PR #3089](https://github.com/openenclave/openenclave/pull/3089)].
 - Design document [quote-ex Integration]:
 [Attestation: OE SDK Integration with Intel® SGX SDK quote-ex Library for Generation of Evidence in New Formats](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/SGX_QuoteEx_Integration.md).
 - Design document [Design Notes]:
