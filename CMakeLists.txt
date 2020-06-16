@@ -94,12 +94,18 @@ endif ()
 # ignored.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "")
+  set(CMAKE_BUILD_TYPE "Debug")
+endif ()
+
 # Validate CMAKE_BUILD_TYPE
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
-list(APPEND uppercase_build_type "" "DEBUG" "RELEASE" "RELWITHDEBINFO")
+list(APPEND uppercase_build_type "DEBUG" "RELEASE" "RELWITHDEBINFO")
 if (NOT uppercase_CMAKE_BUILD_TYPE IN_LIST uppercase_build_type)
   message(FATAL_ERROR "UNKNOWN CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 endif ()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Get Jenkins build number
 if (DEFINED ENV{BUILD_NUMBER})
@@ -223,6 +229,16 @@ else ()
 endif ()
 
 option(ADD_WINDOWS_ENCLAVE_TESTS "Build Windows enclave tests" OFF)
+
+# snmalloc uses C++17 `if constexpr` which is available in GCC 7.1 and above.
+# Ubuntu 16.04's GCC is 5.4.0.
+# Versions of clang which we care about support the construct.
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION
+                                            VERSION_LESS "7.1")
+  set(COMPILER_SUPPORTS_SNMALLOC off)
+else ()
+  set(COMPILER_SUPPORTS_SNMALLOC on)
+endif ()
 
 # NOTE: Building OpenEnclave using snmalloc for memory allocation is an experimental option.
 # Longer term, there will be a pluggable allocator mechanism to allow users to choose from a

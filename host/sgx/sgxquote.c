@@ -387,7 +387,12 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
 #endif // OE_LINK_SGX_QUOTE_EX
 
     // Case when DCAP is used
-    if (!format_ids || *format_ids_size < sizeof(oe_uuid_t))
+    if (!format_ids && *format_ids_size == 0)
+    {
+        *format_ids_size = sizeof(oe_uuid_t);
+        return OE_BUFFER_TOO_SMALL;
+    }
+    else if (!format_ids || *format_ids_size < sizeof(oe_uuid_t))
     {
         *format_ids_size = sizeof(oe_uuid_t);
         OE_RAISE(OE_BUFFER_TOO_SMALL);

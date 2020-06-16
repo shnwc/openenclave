@@ -621,8 +621,11 @@ static oe_result_t _add_eeid_marker_page(
         memset(page, 0, sizeof(oe_page_t));
         oe_eeid_marker_t* marker = (oe_eeid_marker_t*)page;
 
+        /* The offset to the EEID in marker->offset is also the extended
+         * commit size of the base image and dynamically configured data
+         * pages (stacks + heap) excluding the EEID data size.
+         */
         _calculate_enclave_size(image_size, props, &marker->offset, NULL);
-        marker->size = enclave->size;
 
         uint64_t addr = enclave->addr + *vaddr;
         uint64_t src = (uint64_t)page;
@@ -805,7 +808,8 @@ oe_result_t oe_sgx_build_enclave(
         image_size, &props, &enclave_end, &enclave_size));
 
     /* Perform the ECREATE operation */
-    OE_CHECK(oe_sgx_create_enclave(context, enclave_size, &enclave_addr));
+    OE_CHECK(oe_sgx_create_enclave(
+        context, enclave_size, enclave_end, &enclave_addr));
 
     /* Save the enclave base address, size, and text address */
     enclave->addr = enclave_addr;
@@ -813,7 +817,7 @@ oe_result_t oe_sgx_build_enclave(
     enclave->text = enclave_addr + oeimage.text_rva;
 
     /* Patch image */
-    OE_CHECK(oeimage.patch(&oeimage, enclave_end));
+    OE_CHECK(oeimage.patch(&oeimage, enclave_size));
 
     /* Add image to enclave */
     OE_CHECK(oeimage.add_pages(&oeimage, context, enclave, &vaddr));

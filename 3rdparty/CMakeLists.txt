@@ -7,16 +7,17 @@
 # details.
 set(LIBCXX_INCLUDES ${OE_INCDIR}/openenclave/libcxx)
 
+add_subdirectory(dlmalloc)
 add_subdirectory(libcxx)
 add_subdirectory(libcxxrt)
 add_subdirectory(libunwind)
 add_subdirectory(musl)
 add_subdirectory(mbedtls)
 
-if (USE_SNMALLOC)
+if (OE_SGX AND COMPILER_SUPPORTS_SNMALLOC)
+  # snmalloc is most useful in multi-threaded enclaves. Currently, only
+  # SGX enclaves can be multi-threaded.
   add_subdirectory(snmalloc)
-else ()
-  add_subdirectory(dlmalloc)
 endif ()
 
 if (OE_TRUSTZONE)
