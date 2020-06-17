@@ -490,10 +490,8 @@ by the verifier plugin entry points defined in the `oe_verifier_t` structure:
     so the OE SDK framework can free it, and there is no need of a plugin entry
     point.
 - Verify evidence, optionally using a set of input endorsements and policies.
-  - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const oe_uuid_t* format_id, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
-  - The optional parameter `format_id` is added, to specify the
-    type of evidence data held in the `evidence_buffer` parameter.
-  - Otherwise, this entry point has the same definition as in the OE SDK
+  - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
+  - This entry point has the same definition as in the OE SDK
   V0.9 release.
 - Verify a legacy-format report
   - Entry point `oe_result_t (*verify_report)(oe_verifier_t* context, const uint8_t* report, size_t report_size, oe_report_t* parsed_report)`
