@@ -3,7 +3,7 @@
 
 #if defined(OE_LINK_SGX_DCAP_QL)
 
-#if __has_include(<sgx_uae_quote_ex.h>)
+#if __has_include(<sgx_uae_quote_ex.h>) && __has_include(<sgx_urts.h>)
 #define OE_LINK_SGX_QUOTE_EX
 #include <Windows.h>
 #include <openenclave/internal/defs.h>

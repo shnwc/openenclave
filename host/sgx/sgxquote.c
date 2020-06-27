@@ -3,6 +3,7 @@
 #if defined(OE_LINK_SGX_DCAP_QL)
 
 #include "sgxquote.h"
+#include <openenclave/attestation/sgx/evidence.h>
 #include <openenclave/internal/defs.h>
 #include <openenclave/internal/hexdump.h>
 #include <openenclave/internal/raise.h>
@@ -14,7 +15,7 @@
 #include <string.h>
 #include "../../common/oe_host_stdlib.h"
 
-#if __has_include(<sgx_uae_quote_ex.h>)
+#if __has_include(<sgx_uae_quote_ex.h>) && __has_include(<sgx_urts.h>)
 #define OE_LINK_SGX_QUOTE_EX
 #include <sgx_uae_quote_ex.h>
 #include "../hostthread.h"

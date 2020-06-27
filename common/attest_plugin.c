@@ -180,6 +180,7 @@ static bool _check_claims(const oe_claim_t* claims, size_t claims_length)
 }
 
 oe_result_t oe_verify_evidence(
+    const oe_uuid_t* format_id,
     const uint8_t* evidence_buffer,
     size_t evidence_buffer_size,
     const uint8_t* endorsements_buffer,
@@ -192,33 +193,29 @@ oe_result_t oe_verify_evidence(
     oe_result_t result = OE_UNEXPECTED;
     oe_plugin_list_node_t* plugin_node;
     oe_verifier_t* verifier;
-    oe_attestation_header_t* evidence =
-        (oe_attestation_header_t*)evidence_buffer;
-    oe_attestation_header_t* endorsements =
-        (oe_attestation_header_t*)endorsements_buffer;
 
-    if (!evidence_buffer || evidence_buffer_size < sizeof(*evidence) ||
-        (endorsements_buffer &&
-         endorsements_buffer_size < sizeof(*endorsements)))
+    if (!evidence_buffer || !evidence_buffer_size ||
+        (endorsements_buffer && !endorsements_buffer_size))
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    plugin_node = oe_attest_find_plugin(verifiers, &evidence->format_id, NULL);
+    if (!format_id)
+    {
+        oe_attestation_header_t* evidence =
+            (oe_attestation_header_t*)evidence_buffer;
+        format_id = &evidence->format_id;
+    }
+
+    plugin_node = oe_attest_find_plugin(verifiers, format_id, NULL);
     if (plugin_node == NULL)
         OE_RAISE(OE_NOT_FOUND);
-
-    if (endorsements && memcmp(
-                            &evidence->format_id,
-                            &endorsements->format_id,
-                            sizeof(evidence->format_id)) != 0)
-        OE_RAISE(OE_CONSTRAINT_FAILED);
 
     verifier = (oe_verifier_t*)plugin_node->plugin;
     OE_CHECK(verifier->verify_evidence(
         verifier,
-        evidence->data,
-        evidence->data_size,
-        endorsements ? endorsements->data : NULL,
-        endorsements ? endorsements->data_size : 0,
+        evidence_buffer,
+        evidence_buffer_size,
+        endorsements_buffer,
+        endorsements_buffer_size,
         policies,
         policies_size,
         claims,
@@ -397,6 +394,23 @@ oe_result_t oe_find_verifier_plugin(
         OE_RAISE(OE_NOT_FOUND);
 
     *verifier_plugin = (oe_verifier_t*)plugin_node->plugin;
+
+    result = OE_OK;
+
+done:
+    return result;
+}
+
+oe_result_t oe_verify_attestation_header(
+    const uint8_t* data_buffer,
+    size_t data_buffer_size)
+{
+    oe_result_t result = OE_UNEXPECTED;
+    oe_attestation_header_t* header = (oe_attestation_header_t*)data_buffer;
+
+    if (!data_buffer || (data_buffer_size < sizeof(oe_attestation_header_t)) ||
+        header->version != OE_ATTESTATION_HEADER_VERSION)
+        OE_RAISE(OE_INVALID_PARAMETER);
 
     result = OE_OK;
 

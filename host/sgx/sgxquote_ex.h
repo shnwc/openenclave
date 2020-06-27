@@ -9,7 +9,6 @@
 #include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
-//#include <openenclave/bits/sgx/sgxtypes.h>
 
 OE_EXTERNC_BEGIN
 

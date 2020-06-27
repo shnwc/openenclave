@@ -22,13 +22,12 @@
 #include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/trace.h>
 
+#include "../common/attest_plugin.h"
 #include "../common/sgx/endorsements.h"
 
 #include <openenclave/enclave.h>
 
 extern const void* __oe_get_eeid();
-
-static const oe_uuid_t _local_uuid = {OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
 
 static oe_result_t _eeid_attester_on_register(
     oe_attestation_role_t* context,
@@ -49,7 +48,7 @@ static oe_result_t _eeid_attester_on_unregister(oe_attestation_role_t* context)
 
 static oe_result_t _get_sgx_evidence(
     uint32_t flags,
-    const oe_claim_t* custom_claims,
+    const void* custom_claims,
     size_t custom_claims_size,
     const void* opt_params,
     size_t opt_params_size,
@@ -63,15 +62,9 @@ static oe_result_t _get_sgx_evidence(
     OE_SHA256 hash = {0};
     uint8_t* report = NULL;
     size_t report_size = 0;
-    uint8_t* sgx_claims = NULL;
-    size_t sgx_claims_size = 0;
 
-    OE_CHECK(oe_sgx_serialize_claims(
-        custom_claims,
-        custom_claims_size,
-        &sgx_claims,
-        &sgx_claims_size,
-        &hash));
+    OE_CHECK(
+        oe_sgx_hash_custom_claims(custom_claims, custom_claims_size, &hash));
 
     OE_CHECK(oe_get_report(
         flags,
@@ -82,12 +75,12 @@ static oe_result_t _get_sgx_evidence(
         &report,
         &report_size));
 
-    *evidence_buffer_size = report_size + sgx_claims_size;
+    *evidence_buffer_size = report_size + custom_claims_size;
     *evidence_buffer = oe_malloc(*evidence_buffer_size);
     if (!*evidence_buffer)
         OE_RAISE(OE_OUT_OF_MEMORY);
     memcpy(*evidence_buffer, report, report_size);
-    memcpy(*evidence_buffer + report_size, sgx_claims, sgx_claims_size);
+    memcpy(*evidence_buffer + report_size, custom_claims, custom_claims_size);
 
     if (endorsements_buffer && (flags & OE_REPORT_FLAGS_REMOTE_ATTESTATION))
     {
@@ -107,7 +100,7 @@ done:
 
 static oe_result_t _eeid_get_evidence(
     oe_attester_t* context,
-    const oe_claim_t* custom_claims,
+    const void* custom_claims,
     size_t custom_claims_size,
     const void* opt_params,
     size_t opt_params_size,
@@ -128,11 +121,8 @@ static oe_result_t _eeid_get_evidence(
     if (!evidence_buffer || !evidence_buffer_size || !eeid)
         OE_RAISE(OE_FAILURE);
 
-    // Set flags based on format UUID, ignore and overwrite the input value
-    if (!memcmp(&context->base.format_id, &_local_uuid, sizeof(oe_uuid_t)))
-        flags = 0;
-    else
-        flags = OE_REPORT_FLAGS_REMOTE_ATTESTATION;
+    // For EEID, the flag is always set for remote attestation
+    flags = OE_REPORT_FLAGS_REMOTE_ATTESTATION;
 
     *evidence_buffer = NULL;
     *evidence_buffer_size = 0;
@@ -160,13 +150,18 @@ static oe_result_t _eeid_get_evidence(
         &sgx_endorsements_buffer,
         &sgx_endorsements_buffer_size));
 
-    // Prepare EEID evidence
-    *evidence_buffer_size = sizeof(oe_eeid_evidence_t) +
-                            sgx_evidence_buffer_size +
-                            sgx_endorsements_buffer_size + eeid_size;
-    evidence = oe_malloc(*evidence_buffer_size);
-    if (!evidence)
+    // Prepare EEID evidence, prefixed with an attestation header.
+    *evidence_buffer_size =
+        sizeof(oe_attestation_header_t) + sizeof(oe_eeid_evidence_t) +
+        sgx_evidence_buffer_size + sgx_endorsements_buffer_size + eeid_size;
+
+    *evidence_buffer = oe_malloc(*evidence_buffer_size);
+    if (!*evidence_buffer)
         OE_RAISE(OE_OUT_OF_MEMORY);
+
+    evidence =
+        (oe_eeid_evidence_t*)(*evidence_buffer + sizeof(oe_attestation_header_t));
+
     evidence->sgx_evidence_size = sgx_evidence_buffer_size;
     evidence->sgx_endorsements_size = sgx_endorsements_buffer_size;
     evidence->eeid_size = eeid_size;
@@ -187,19 +182,35 @@ static oe_result_t _eeid_get_evidence(
         eeid_size));
 
     // Write evidence
-    *evidence_buffer = oe_malloc(*evidence_buffer_size);
-    if (!*evidence_buffer)
-        OE_RAISE(OE_OUT_OF_MEMORY);
     OE_CHECK(oe_eeid_evidence_hton(
-        evidence, *evidence_buffer, *evidence_buffer_size));
+        evidence,
+        *evidence_buffer + sizeof(oe_attestation_header_t),
+        *evidence_buffer_size - sizeof(oe_attestation_header_t)));
+
+    // Fill the evidence header
+    OE_CHECK(oe_fill_attestation_header(
+        &context->base.format_id,
+        *evidence_buffer + sizeof(oe_attestation_header_t),
+        *evidence_buffer_size - sizeof(oe_attestation_header_t),
+        (oe_attestation_header_t*)*evidence_buffer));
 
     // Write endorsements
     if (endorsements_buffer)
     {
-        *endorsements_buffer_size = eeid_size;
+        *endorsements_buffer_size = sizeof(oe_attestation_header_t) + eeid_size;
         *endorsements_buffer = oe_malloc(*endorsements_buffer_size);
+        if (!*endorsements_buffer)
+            OE_RAISE(OE_OUT_OF_MEMORY);
+
+        oe_fill_attestation_header(
+            &context->base.format_id,
+            *endorsements_buffer + sizeof(oe_attestation_header_t),
+            eeid_size,
+            (oe_attestation_header_t*)*endorsements_buffer);
         OE_CHECK(oe_eeid_hton(
-            eeid, *endorsements_buffer, *endorsements_buffer_size));
+            eeid,
+            *endorsements_buffer + sizeof(oe_attestation_header_t),
+            eeid_size));
     }
 
     result = OE_OK;

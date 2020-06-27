@@ -82,6 +82,7 @@ static void _test_evidence_success(const oe_uuid_t* format_id)
     // Verify evidence without endorsements.
     OE_TEST(
         oe_verify_evidence(
+            NULL,
             evidence,
             evidence_size,
             NULL,
@@ -96,6 +97,7 @@ static void _test_evidence_success(const oe_uuid_t* format_id)
     // Verify with endorsements.
     OE_TEST(
         oe_verify_evidence(
+            NULL,
             evidence,
             evidence_size,
             endorsements,
@@ -168,6 +170,7 @@ static void _test_verify_evidence_fail()
     // Test verify_evidence with wrong sizes
     OE_TEST_CODE(
         oe_verify_evidence(
+            NULL,
             evidence,
             0,
             endorsements,
@@ -180,6 +183,7 @@ static void _test_verify_evidence_fail()
 
     OE_TEST_CODE(
         oe_verify_evidence(
+            NULL,
             evidence,
             evidence_size,
             endorsements,
@@ -194,6 +198,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(oe_sgx_eeid_verifier_shutdown(), OE_OK);
     OE_TEST_CODE(
         oe_verify_evidence(
+            NULL,
             evidence,
             evidence_size,
             endorsements,

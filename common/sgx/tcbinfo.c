@@ -733,6 +733,7 @@ oe_result_t oe_parse_tcb_info_json(
                     i,
                     platform_tcb_level->sgx_tcb_comp_svn[i]);
             OE_TRACE_VERBOSE("pce_svn = 0x%x", platform_tcb_level->pce_svn);
+            OE_TRACE_INFO("Debug: accept outdated PCE SVN");
             OE_RAISE_MSG(
                 platform_tcb_level->pce_svn == 0x9 ? OE_OK
                                                    : OE_TCB_LEVEL_INVALID,

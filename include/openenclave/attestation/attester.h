@@ -73,9 +73,10 @@ oe_result_t oe_attester_select_format(
  *
  * @experimental
  *
- * @param[in] evidence_format The format UUID of the evidence to be generated.
- * @param[in] custom_claims The optional custom claims list.
- * @param[in] custom_claims_length The number of custom claims.
+ * @param[in] format_id The format ID of the evidence to be generated.
+ * @param[in] custom_claims The optional custom claims buffer.
+ * @param[in] custom_claims_size The number of bytes in the custom claims
+ * buffer.
  * @param[in] optional_parameters The optional format-specific input parameters.
  * @param[in] optional_parameters_size The size of optional_parameters in bytes.
  * @param[out] evidence_buffer An output pointer that will be assigned the
@@ -92,9 +93,9 @@ oe_result_t oe_attester_select_format(
  * @retval other appropriate error code.
  */
 oe_result_t oe_get_evidence(
-    const oe_uuid_t* evidence_format,
-    const oe_claim_t* custom_claims,
-    size_t custom_claims_length,
+    const oe_uuid_t* format_id,
+    const void* custom_claims,
+    size_t custom_claims_size,
     const void* optional_parameters,
     size_t optional_parameters_size,
     uint8_t** evidence_buffer,
@@ -149,6 +150,6 @@ oe_result_t oe_attester_shutdown(void);
 
 OE_EXTERNC_END
 
-#endif
+#endif // _OE_HOST_H
 
 #endif /* _OE_ATTESTATION_ATTESTER_H */

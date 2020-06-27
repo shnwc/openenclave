@@ -316,6 +316,7 @@ oe_result_t oe_validate_revocation_list(
     // constraint. If the crl_issuer_chain was different from the certificate
     // chain, then verification would fail because the CRLs will not be found
     // for certificates in the chain.
+    OE_TRACE_INFO("Debug: accept expired PCK cert chain / CRL");
     OE_CHECK_MSG(
         oe_cert_verify(
             pck_cert, &crl_issuer_chain, crl_ptrs, OE_COUNTOF(crl_ptrs))
