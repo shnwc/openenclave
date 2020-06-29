@@ -509,7 +509,7 @@ by the verifier plugin entry points defined in the `oe_verifier_t` structure:
     point.
 - Verify evidence, optionally using a set of input endorsements and policies.
   - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
-  - `evidence_buffer` and `endorsements_buffer` contain the all evidence and
+  - `evidence_buffer` and `endorsements_buffer` contain all the evidence and
   endorsements data received by the public
   function `oe_verify_evidence()`, without any unwrapping.
     - Note: this is needed to support verification of evidence data that does
