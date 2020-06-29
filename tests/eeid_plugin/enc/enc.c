@@ -1,16 +1,16 @@
 // Copyright (c) Open Enclave SDK contributors.
 // Licensed under the MIT License.
 
+#include <openenclave/attestation/attester.h>
 #include <openenclave/attestation/sgx/eeid_attester.h>
+#include <openenclave/attestation/sgx/eeid_plugin.h>
 #include <openenclave/attestation/sgx/eeid_verifier.h>
-#include <openenclave/corelibc/string.h>
+#include <openenclave/attestation/verifier.h>
 #include <openenclave/enclave.h>
 #include <openenclave/internal/report.h>
-#include <openenclave/internal/sgx/eeid_plugin.h>
-#include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/tests.h>
+#include <openenclave/internal/trace.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../../../common/sgx/quote.h"
@@ -75,9 +75,9 @@ static void _test_evidence_success(const oe_uuid_t* format_id)
 
 #ifndef _OE_ENCLAVE_H
     OE_UNUSED(_check_claims);
-    OE_TEST(r == OE_UNSUPPORTED);
+    OE_TEST_CODE(r, OE_UNSUPPORTED);
 #else
-    OE_TEST(r == OE_OK);
+    OE_TEST_CODE(r, OE_OK);
 
     // Verify evidence without endorsements.
     OE_TEST(

@@ -23,6 +23,16 @@ Users can import a system OCall the same way any other EDL file would be importe
 if an enclave with EDL file `sample.edl` wants to use the function `oe_log_ocall()` they can do
 one of the following:
 
+*Note: Both SGX SDK for Linux and Intel SGX SDK for Windows require the user to link specific
+libraries in addition to importing the system edl. For example, in order to use the switchless
+calling feature in SGX SDK for Linux, the user must import sgx_tswitchless.edl, and link
+sgx_tswitchless.a in the enclave and sgx_uswitchless.a in the host. In contrasst, OE SDK will
+only require the user to import switchless.edl, and not require the user to link new
+libraries for system edls. However, the current libraries for system EDLs will remain.
+(i.e.: liboehostepoll.a,  liboehostresolver.a, liboelibc.a, liboesyscall.a).
+See [Sig-Arch](https://hackmd.io/@aeva/oesdk-sig-arch#23-June-2020)
+
+
 *Note: These examples assume that `${install_path}/include` is passed to edger8r as an EDL search path*
 
 1. Import just the required OCall
@@ -149,11 +159,6 @@ To build the SDK in the way it will be built for v0.10, you can pass
 `-DCOMPILE_SYSTEM_EDL=OFF`.
 
 ### Currently required EDL by all applications
-
-**logging.edl**
-
-Logging can not currently be disabled so all enclaves will need the logging
-calls.
 
 **sgx/platform.edl**
 

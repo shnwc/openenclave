@@ -9,6 +9,7 @@
 #include <openenclave/enclave.h>
 
 #include <openenclave/attestation/sgx/eeid_attester.h>
+#include <openenclave/attestation/sgx/eeid_plugin.h>
 #include <openenclave/bits/attestation.h>
 #include <openenclave/bits/eeid.h>
 #include <openenclave/bits/sgx/sgxtypes.h>
@@ -18,7 +19,6 @@
 #include <openenclave/internal/plugin.h>
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/report.h>
-#include <openenclave/internal/sgx/eeid_plugin.h>
 #include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/trace.h>
 
@@ -113,6 +113,7 @@ static oe_result_t _eeid_get_evidence(
     oe_result_t result = OE_UNEXPECTED;
     oe_endorsements_t* endorsements = NULL;
     oe_eeid_evidence_t* evidence = NULL;
+    size_t evidence_size = 0;
     uint8_t *sgx_evidence_buffer = NULL, *sgx_endorsements_buffer = NULL;
     size_t sgx_evidence_buffer_size = 0, sgx_endorsements_buffer_size = 0;
     const oe_eeid_t* eeid = __oe_get_eeid();
@@ -151,16 +152,13 @@ static oe_result_t _eeid_get_evidence(
         &sgx_endorsements_buffer_size));
 
     // Prepare EEID evidence, prefixed with an attestation header.
-    *evidence_buffer_size =
-        sizeof(oe_attestation_header_t) + sizeof(oe_eeid_evidence_t) +
-        sgx_evidence_buffer_size + sgx_endorsements_buffer_size + eeid_size;
+    evidence_size = sizeof(oe_eeid_evidence_t) +
+                    sgx_evidence_buffer_size +
+                    sgx_endorsements_buffer_size + eeid_size;
 
-    *evidence_buffer = oe_malloc(*evidence_buffer_size);
-    if (!*evidence_buffer)
+    evidence = oe_malloc(evidence_size);
+    if (!evidence)
         OE_RAISE(OE_OUT_OF_MEMORY);
-
-    evidence =
-        (oe_eeid_evidence_t*)(*evidence_buffer + sizeof(oe_attestation_header_t));
 
     evidence->sgx_evidence_size = sgx_evidence_buffer_size;
     evidence->sgx_endorsements_size = sgx_endorsements_buffer_size;
@@ -181,17 +179,23 @@ static oe_result_t _eeid_get_evidence(
             evidence->sgx_endorsements_size,
         eeid_size));
 
-    // Write evidence
+    // Output evidence is prefixed with an attestation header
+    *evidence_buffer_size = sizeof(oe_attestation_header_t) + evidence_size;
+    *evidence_buffer = oe_malloc(*evidence_buffer_size);
+    if (!*evidence_buffer)
+        OE_RAISE(OE_OUT_OF_MEMORY);
+
+    // Write evidence. This can't be done in-place.
     OE_CHECK(oe_eeid_evidence_hton(
         evidence,
         *evidence_buffer + sizeof(oe_attestation_header_t),
-        *evidence_buffer_size - sizeof(oe_attestation_header_t)));
+        evidence_size));
 
-    // Fill the evidence header
+    // Fill the evidence header.
     OE_CHECK(oe_fill_attestation_header(
         &context->base.format_id,
         *evidence_buffer + sizeof(oe_attestation_header_t),
-        *evidence_buffer_size - sizeof(oe_attestation_header_t),
+        evidence_size,
         (oe_attestation_header_t*)*evidence_buffer));
 
     // Write endorsements
@@ -230,7 +234,7 @@ static oe_result_t _eeid_free_evidence(
     uint8_t* evidence_buffer)
 {
     OE_UNUSED(context);
-    free(evidence_buffer);
+    oe_free(evidence_buffer);
     return OE_OK;
 }
 
@@ -239,7 +243,7 @@ static oe_result_t _eeid_free_endorsements(
     uint8_t* endorsements_buffer)
 {
     OE_UNUSED(context);
-    free(endorsements_buffer);
+    oe_free(endorsements_buffer);
     return OE_OK;
 }
 

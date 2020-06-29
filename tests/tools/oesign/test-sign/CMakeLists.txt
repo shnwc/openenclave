@@ -3,16 +3,20 @@
 
 set(OESIGN_TEST_INPUTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/../test-inputs)
 
-configure_file(../sign-and-verify.py sign-and-verify.py COPYONLY)
+add_custom_command(
+  OUTPUT sign-and-verify.py
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../sign-and-verify.py
+  COMMAND cmake -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../sign-and-verify.py
+          ${CMAKE_CURRENT_BINARY_DIR})
 
 add_custom_target(
   oesign_sign_test_dependencies ALL
   DEPENDS oesign oesign_test_host oesign_test_enc oesign_test_keys
-          oesign_test_configs)
+          oesign_test_configs sign-and-verify.py)
 
 # Test oesign succeeds with valid short form of engine signing parameters
 set(OESIGN_SIGN_VALID_SHORT_ARGS
-    "-c ${OESIGN_TEST_INPUTS_DIR}/valid.conf -k ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem"
+    "[-c,${OESIGN_TEST_INPUTS_DIR}/valid.conf,-k,${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem]"
 )
 
 add_test(
@@ -28,7 +32,7 @@ set_tests_properties(
 
 # Test oesign succeeds with valid long form of engine signing parameters
 set(OESIGN_SIGN_VALID_LONG_ARGS
-    "--config-file ${OESIGN_TEST_INPUTS_DIR}/valid.conf --key-file ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem"
+    "[--config-file,${OESIGN_TEST_INPUTS_DIR}/valid.conf,--key-file,${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem]"
 )
 
 add_test(
@@ -62,6 +66,79 @@ set_tests_properties(
   tests/oesign-sign-invalid-key-file
   PROPERTIES PASS_REGULAR_EXPRESSION
              "ERROR: Failed to load file: does_not_exist.pem")
+
+# Test invalid .conf with duplicate Debug property
+add_test(
+  NAME tests/oesign-sign-duplicate-debug-config
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/duplicate_debug.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-duplicate-debug-config
+  PROPERTIES PASS_REGULAR_EXPRESSION "Duplicate 'Debug' value provided")
+
+# Test invalid .conf with duplicate NumHeapPages property
+add_test(
+  NAME tests/oesign-sign-duplicate-num-heap-pages-config
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/duplicate_num_heap_pages.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-duplicate-num-heap-pages-config
+  PROPERTIES PASS_REGULAR_EXPRESSION "Duplicate 'NumHeapPages' value provided")
+
+# Test invalid .conf with duplicate NumStackPages property
+add_test(
+  NAME tests/oesign-sign-duplicate-num-stack-pages-config
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/duplicate_num_stack_pages.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-duplicate-num-stack-pages-config
+  PROPERTIES PASS_REGULAR_EXPRESSION "Duplicate 'NumStackPages' value provided")
+
+# Test invalid .conf with duplicate NumTCS property
+add_test(
+  NAME tests/oesign-sign-duplicate-num-tcs-config
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/duplicate_num_tcs.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-duplicate-num-tcs-config
+  PROPERTIES PASS_REGULAR_EXPRESSION "Duplicate 'NumTCS' value provided")
+
+# Test invalid .conf with duplicate ProductID property
+add_test(
+  NAME tests/oesign-sign-duplicate-product-id-config
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/duplicate_product_id.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-duplicate-product-id-config
+  PROPERTIES PASS_REGULAR_EXPRESSION "Duplicate 'ProductID' value provided")
+
+# Test invalid .conf with duplicate SecurityVersion property
+add_test(
+  NAME tests/oesign-sign-duplicate-security-version-config
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/duplicate_security_version.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-duplicate-security-version-config
+  PROPERTIES PASS_REGULAR_EXPRESSION
+             "Duplicate 'SecurityVersion' value provided")
 
 # Test signing key with invalid exponent for SGX signing
 add_test(
@@ -103,3 +180,26 @@ set_tests_properties(
   PROPERTIES
     PASS_REGULAR_EXPRESSION
     "ERROR: Invalid enclave property value: header.size_settings.num_tcs")
+
+# Test invalid config file with invalid debug value specified
+add_test(
+  NAME tests/oesign-sign-debug-out-of-range
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/debug_out_of_range.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(
+  tests/oesign-sign-debug-out-of-range
+  PROPERTIES PASS_REGULAR_EXPRESSION "'Debug' value must be 0 or 1")
+
+# Test invalid config file with invalid syntax "Debug" --> "debug"
+add_test(
+  NAME tests/oesign-sign-lowercase-debug-property
+  COMMAND
+    oesign sign -e $<TARGET_FILE:oesign_test_enc> -c
+    ${OESIGN_TEST_INPUTS_DIR}/lowercase_debug_property.conf -k
+    ${OESIGN_TEST_INPUTS_DIR}/sign_key.private.pem)
+
+set_tests_properties(tests/oesign-sign-lowercase-debug-property
+                     PROPERTIES PASS_REGULAR_EXPRESSION "unknown setting")

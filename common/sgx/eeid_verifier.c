@@ -12,6 +12,7 @@
 #include "../../host/memalign.h"
 #endif
 
+#include <openenclave/attestation/sgx/eeid_plugin.h>
 #include <openenclave/attestation/sgx/eeid_verifier.h>
 #include <openenclave/bits/attestation.h>
 #include <openenclave/bits/eeid.h>
@@ -20,7 +21,6 @@
 #include <openenclave/internal/plugin.h>
 #include <openenclave/internal/raise.h>
 #include <openenclave/internal/report.h>
-#include <openenclave/internal/sgx/eeid_plugin.h>
 #include <openenclave/internal/sgx/plugin.h>
 #include <openenclave/internal/trace.h>
 
@@ -336,8 +336,8 @@ static oe_result_t _eeid_verify_evidence(
         oe_attestation_header_t* header =
             (oe_attestation_header_t*)endorsements_buffer;
 
-        if (endorsements_buffer_size < sizeof(*header))
-            OE_RAISE(OE_INVALID_PARAMETER);
+        OE_CHECK(oe_verify_attestation_header(
+            endorsements_buffer, endorsements_buffer_size));
 
         if (memcmp(
                 &context->base.format_id,

@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added `oe_sgx_get_signer_id_from_public_key()` function which helps a verifier of SGX
   reports extract the expected MRSIGNER value from the signer's public key PEM certificate.
+- OE SDK can now be built and run in simulation mode on a non SGX x64 Windows machine by passing HAS_QUOTE_PROVIDER=off.
+  Previously, the build would work, but running applications would fail due to missing sgx_enclave_common.dll.
+- OE SDK can now be installed from published packages on SGX machines without FLC, and non-SGX machines.
+  Previously, OE SDK could only be installed on SGX1 FLC machines due to a link-time dependency on sgx_dcap_ql which
+  was available only on SGX1 FLC machines.
+- oesign tool supports the new `digest` command and options for [2-step signing using the digest](
+  docs/DesignDocs/oesign_digest_signing_support.md).
+- Oeedger8r now supports the --use-prefix feature.
+- Oeedger8r now supports a subset of C-style preprocessor directives (#ifdef, #ifndef, #else, #endif).
+- The default memory allocator (dlmalloc) can be replaced by providing replacement functions. This ability to plug-in
+  a custom allocator is most applicable for multi-threaded enclaves with memory allocation patterns where the default
+  memory allocator may not be performant. See [Pluggable Allocators](docs/DesignDocs/Pluggableallocators.md).
 
 ### Changed
 - Mark APIs in include/openenclave/attestation/sgx/attester.h and verifier.h as experimental.
@@ -21,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   application EDL. See [system EDL opt-in document]
   (docs/DesignDocs/system_ocall_opt_in.md#how-to-port-your-application) for more information.
 - Switch to oeedger8r written in C++.
+- Fix #3134. oesign tool will now reject .conf files that contain duplicate property definitions.
+- SGX Simulation Mode does not need SGX libraries to be present in the system.
+- oehost library dynamically loads sgx_dcap_ql shared library instead of linking against it. This allows the SDK to
+  be installed on non-FLC and non-SGX machines.
+- oesign `dump` command now also displays the `MRSIGNER` value of an SGX enclave signature if it exists.
+- The Deep-copy feature of oeedger8r is now enabled by default.
+- The oeedger8r-generated header files now contain only the function prototypes. Marshalling structs, function id enums,
+  and function tables are generated only in the c files.
 
 ### Removed
 - Removed oehostapp and the appendent "-rdynamic" compiling option. Please use oehost instead and add the option back manually if necessary.
