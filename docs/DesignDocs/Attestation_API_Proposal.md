@@ -434,9 +434,9 @@ endorsements.
   in trusted enclave memory. These buffers will be freed by the plugin framework
   via public functions `oe_free_evidence()` and `oe_free_endorsements()` respectively.
   - The output evidence and endorsements in `evidence_buffer` and
-  `endorsements_buffer` contain all the headers needed
-  for the format, for output by `oe_verify_evidence()` directly without
-  further wrapping.
+  `endorsements_buffer` contain all the headers (if any) needed
+  for the format. The OE SDK framework implementation of `oe_get_evidence()`
+  (that calls this entry point) does not perform any further wrapping.
     - Note: this is needed to support generation of evidence data that does
     not contain a header holding an format ID.
   - Otherwise, this entry point has the same definition as in the OE SDK
@@ -509,9 +509,9 @@ by the verifier plugin entry points defined in the `oe_verifier_t` structure:
     point.
 - Verify evidence, optionally using a set of input endorsements and policies.
   - Entry point `oe_result_t (*verify_evidence)(oe_verifier_t* context, const uint8_t* evidence_buffer, size_t evidence_buffer_size, const uint8_t* endorsements_buffer, size_t endorsements_buffer_size, const oe_policy_t* policies, size_t policies_size, oe_claim_t** claims, size_t* claims_length)`.
-  - `evidence_buffer` and `endorsements_buffer` contain all the evidence and
-  endorsements data received by the public
-  function `oe_verify_evidence()`, without any unwrapping.
+  - `evidence_buffer` and `endorsements_buffer` contain all headers (if any).
+  The OE SDK framework implementation of `oe_verify_evidence()` (that calls
+  this entry point) does not perform any unwrapping.
     - Note: this is needed to support verification of evidence data that does
     not have a header with a format ID, e.g. SGX report or SGX quote,
     while keeping the `oe_verify_evidence()` implementation TEE-agnostic.

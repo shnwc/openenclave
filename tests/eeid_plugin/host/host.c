@@ -122,10 +122,7 @@ void one_enclave_tests(const char* filename, uint32_t flags)
     oe_enclave_t* enclave = NULL;
     oe_result_t result = oe_create_eeid_plugin_enclave(
         filename, OE_ENCLAVE_TYPE_AUTO, flags, &setting, 1, &enclave);
-    // filename, OE_ENCLAVE_TYPE_AUTO, flags, NULL, 0, &enclave);
     OE_TEST(result == OE_OK);
-
-    // OE_TEST_CODE(OE_FAILURE, OE_OK);
 
     run_tests(enclave);
     host_remote_verify(enclave);

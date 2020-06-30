@@ -195,6 +195,7 @@ oe_result_t oe_verify_evidence(
     oe_verifier_t* verifier;
 
     if (!evidence_buffer || !evidence_buffer_size ||
+        (!endorsements_buffer && endorsements_buffer_size) ||
         (endorsements_buffer && !endorsements_buffer_size))
         OE_RAISE(OE_INVALID_PARAMETER);
 
@@ -202,6 +203,10 @@ oe_result_t oe_verify_evidence(
     {
         oe_attestation_header_t* evidence =
             (oe_attestation_header_t*)evidence_buffer;
+
+        OE_CHECK(oe_verify_attestation_header(
+            evidence_buffer, evidence_buffer_size));
+
         format_id = &evidence->format_id;
     }
 

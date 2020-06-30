@@ -129,8 +129,8 @@ oe_result_t oe_get_evidence(
         endorsements_buffer,
         endorsements_buffer_size));
 
-    // Note: plugins are responsible to wrap evidence and endorsements
-    // with attestation header.
+    // Note: plugin is responsible to wrap evidence and endorsements
+    // with an attestation header, when format_id requires one.
 
     result = OE_OK;
 

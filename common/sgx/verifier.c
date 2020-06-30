@@ -127,7 +127,7 @@ static oe_result_t _verify_local_report(
 }
 
 // Either verify custom claims, or return SGX report data.
-static oe_result_t _process_claims_hash(
+static oe_result_t _process_report_data(
     const sgx_evidence_format_type_t format_type,
     const uint8_t* report_body, // Raw SGX quote or report
     const uint8_t* custom_claims,
@@ -376,8 +376,8 @@ oe_result_t oe_sgx_extract_claims(
         OE_RAISE(OE_INVALID_PARAMETER);
 
     // verify the integrity of the custom_claims with hash stored in
-    // report_body, or retrieves the SGX report data
-    OE_CHECK(_process_claims_hash(
+    // report_body, or retrieve the SGX report data
+    OE_CHECK(_process_report_data(
         format_type,
         report_body,
         custom_claims,
@@ -479,7 +479,7 @@ static oe_result_t _verify_evidence(
     sgx_evidence_format_type_t format_type = SGX_FORMAT_TYPE_UNKNOWN;
     // evidence_buffer can have oe_attestation_header_t and
     // oe_report_header_t. Only report body is verified.
-    // Then custom claims buffer, if exist, is verified and extracted.
+    // Then the custom claims buffer, if it exists, is verified and extracted.
     const uint8_t* report_body = NULL;
     size_t report_body_size = 0;
     const uint8_t* custom_claims = NULL;

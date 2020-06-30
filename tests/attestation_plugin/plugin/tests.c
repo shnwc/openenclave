@@ -535,10 +535,8 @@ void verify_sgx_evidence(
         // evidence_buffer has oe_attestation_header_t and oe_report_header_t
         oe_report_header_t* report = (oe_report_header_t*)evidence_header->data;
 
-        OE_TEST(
-            evidence_size >=
-                sizeof(oe_attestation_header_t) + sizeof(oe_report_header_t) &&
-            evidence_header->version == OE_ATTESTATION_HEADER_VERSION);
+        OE_TEST_CODE(
+            oe_verify_attestation_header(evidence, evidence_size), OE_OK);
 
         OE_TEST(
             report->version == OE_REPORT_HEADER_VERSION &&
@@ -554,10 +552,8 @@ void verify_sgx_evidence(
         // evidence_buffer has oe_attestation_header_t and oe_report_header_t
         oe_report_header_t* report = (oe_report_header_t*)evidence_header->data;
 
-        OE_TEST(
-            evidence_size >=
-                sizeof(oe_attestation_header_t) + sizeof(oe_report_header_t) &&
-            evidence_header->version == OE_ATTESTATION_HEADER_VERSION);
+        OE_TEST_CODE(
+            oe_verify_attestation_header(evidence, evidence_size), OE_OK);
 
         OE_TEST(
             report->version == OE_REPORT_HEADER_VERSION &&
@@ -725,15 +721,15 @@ void verify_sgx_evidence(
     claims = NULL;
     claims_size = 0;
 
-    // Test SGX evidence with tampered custom claims.
-    // Doable only when the custom claims are hashed to SGX report data.
+    // Test SGX evidence verification using tampered-with custom claims.
+    // Doable only when non-empty custom claims data is present
     if (custom_claims && (format_type == SGX_FORMAT_TYPE_LOCAL ||
                           format_type == SGX_FORMAT_TYPE_REMOTE))
     {
         printf(
             "====== running verify_sgx_evidence failed with hampered claims\n");
 
-        // Tamper the last byte of the custom claims data.
+        // Tamper with the last byte of the custom claims data.
         evidence_header->data[evidence_header->data_size - 1] ^= 1;
 
         OE_TEST(
@@ -756,9 +752,9 @@ void verify_sgx_evidence(
     }
 
     // Extract legacy OE report and SGX quote from ECDSA evidence
-    // and verify using the conrresponding legacy format IDs.
-    // These two types of evidence are not companied by endorsements.
-    if (format_type == SGX_FORMAT_TYPE_REMOTE)
+    // and verify them using the conrresponding legacy format IDs.
+    // Accompanied endorsements data (wrappwed with a header) is dropped
+    if (!memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
         oe_attestation_header_t* evidence_header =
             (oe_attestation_header_t*)evidence;

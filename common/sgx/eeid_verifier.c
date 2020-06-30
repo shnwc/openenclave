@@ -252,9 +252,9 @@ static oe_result_t _eeid_verify_evidence(
     oe_eeid_t *attester_eeid = NULL, *verifier_eeid = NULL;
     oe_eeid_evidence_t* evidence = NULL;
 
-    if (!evidence_buffer ||
-        evidence_buffer_size < sizeof(oe_attestation_header_t) ||
-        (endorsements_buffer && endorsements_buffer_size == 0))
+    // evidence_buffer is checked in oe_verify_attestation_header()
+    if ((!endorsements_buffer && endorsements_buffer_size) ||
+        (endorsements_buffer && !endorsements_buffer_size))
         OE_RAISE(OE_INVALID_PARAMETER);
 
     // Verify the header then discard it from evidence buffer
@@ -332,7 +332,7 @@ static oe_result_t _eeid_verify_evidence(
     /* EEID passed to the verifier */
     if (endorsements_buffer)
     {
-        // Verify and disard attestation header
+        // Verify and discard attestation header
         oe_attestation_header_t* header =
             (oe_attestation_header_t*)endorsements_buffer;
 
