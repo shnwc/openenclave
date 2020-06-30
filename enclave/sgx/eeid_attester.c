@@ -152,8 +152,7 @@ static oe_result_t _eeid_get_evidence(
         &sgx_endorsements_buffer_size));
 
     // Prepare EEID evidence, prefixed with an attestation header.
-    evidence_size = sizeof(oe_eeid_evidence_t) +
-                    sgx_evidence_buffer_size +
+    evidence_size = sizeof(oe_eeid_evidence_t) + sgx_evidence_buffer_size +
                     sgx_endorsements_buffer_size + eeid_size;
 
     evidence = oe_malloc(evidence_size);
