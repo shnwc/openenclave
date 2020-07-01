@@ -810,7 +810,8 @@ static oe_result_t _get_verifier_plugins(
 
 #ifdef OE_BUILD_ENCLAVE
     uuids[3] = &_local_uuid;
-    uuid_count = 4; // In enclave, local attestation and 3 ECDSA formats are supported.
+    uuid_count =
+        4; // In enclave, local attestation and 3 ECDSA formats are supported.
 #else
     // On the host side, only 3 ECDSA formats are supported.
     // Note: SGX local attestation can only be performed between enclaves.

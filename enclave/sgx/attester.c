@@ -379,8 +379,9 @@ static oe_result_t _get_attester_plugins(
     uuid_list = (oe_uuid_t*)temporary_buffer;
     uuid_count = temporary_buffer_size / sizeof(oe_uuid_t);
 
-    // If format SGX ECDSA_p256 is supported, then legacy OE report and SGX quote
-    // can also be supported. The two UUIDs for these two legacy formats are added
+    // If format SGX ECDSA_p256 is supported, then legacy OE report and SGX
+    // quote can also be supported. The two UUIDs for these two legacy formats
+    // are added
     for (size_t i = 0; i < uuid_count; i++)
         if (!memcmp(uuid_list + i, &_ecdsa_uuid, sizeof(oe_uuid_t)))
         {
