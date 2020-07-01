@@ -507,7 +507,7 @@ oe_result_t oe_find_verifier_plugin(
  * @param[in,out] header The header to be filled with the needed values.
  * @retval OE_OK on success.
  * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
- * @retval OE_CONSTRAINT_FAILED If the header does not prefix the data
+ * @retval OE_CONSTRAINT_FAILED If the header does not prefix the data.
  * @retval An appropriate error code on failure.
  */
 oe_result_t oe_fill_attestation_header(
@@ -523,7 +523,7 @@ oe_result_t oe_fill_attestation_header(
  * Available only in enclave.
  *
  * @param[in] format_id The format ID for the input data.
- * @param[in] data The input data to be wrapped
+ * @param[in] data The input data to be wrapped.
  * @param[in] data_size The size of the input data.
  * @param[out] total_data Pointer a variable that points to the dynamically
  * allocated buffer that holds the wrapped data.
