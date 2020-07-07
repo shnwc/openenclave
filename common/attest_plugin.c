@@ -222,9 +222,9 @@ oe_result_t oe_verify_evidence(
                 OE_RAISE(OE_INVALID_PARAMETER);
 
             if (memcmp(
-                &evidence->format_id,
-                &endorsements->format_id,
-                sizeof(evidence->format_id)) != 0)
+                    &evidence->format_id,
+                    &endorsements->format_id,
+                    sizeof(evidence->format_id)) != 0)
                 OE_RAISE(OE_CONSTRAINT_FAILED);
 
             plugin_endorsements = endorsements->data;

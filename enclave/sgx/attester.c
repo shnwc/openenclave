@@ -140,10 +140,7 @@ static oe_result_t _get_evidence(
         // Copy SGX report to evidence
         memcpy(tmp_buffer, report, report_size);
         // Copy custom claims to evidence
-        memcpy(
-            tmp_buffer + report_size,
-            custom_claims,
-            custom_claims_size);
+        memcpy(tmp_buffer + report_size, custom_claims, custom_claims_size);
 
         // Get the endorsements from the report if needed.
         if (endorsements_buffer && flags == OE_REPORT_FLAGS_REMOTE_ATTESTATION)

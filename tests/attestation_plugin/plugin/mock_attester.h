@@ -88,7 +88,8 @@ static inline oe_result_t mock_get_evidence(
             OE_RAISE(OE_OUT_OF_MEMORY);
 
         memcpy(
-            *endorsements_buffer, (uint8_t*)MOCK_ENDORSEMENTS,
+            *endorsements_buffer,
+            (uint8_t*)MOCK_ENDORSEMENTS,
             sizeof(MOCK_ENDORSEMENTS));
         *endorsements_buffer_size = sizeof(MOCK_ENDORSEMENTS);
     }

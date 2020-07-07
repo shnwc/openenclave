@@ -15,7 +15,7 @@
 
 OE_EXTERNC_BEGIN
 
-#define OE_FORMAT_UUID_SGX_ECDSA_P256                                                \
+#define OE_FORMAT_UUID_SGX_ECDSA_P256                                     \
     {                                                                     \
         0xa3, 0xa2, 0x1e, 0x87, 0x1b, 0x4d, 0x40, 0x14, 0xb7, 0x0a, 0xa1, \
             0x25, 0xd2, 0xfb, 0xcd, 0x8c                                  \

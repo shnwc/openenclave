@@ -447,7 +447,8 @@ static void _test_time_policy(
             &policy,
             1,
             &claims,
-            &claims_size), OE_OK);
+            &claims_size),
+        OE_OK);
     OE_TEST(oe_free_claims(claims, claims_size) == OE_OK);
 
     dt = *until;
@@ -540,8 +541,7 @@ void verify_sgx_evidence(
     {
         // evidence has oe_report_header_t
         oe_report_header_t* report =
-            (oe_report_header_t*)(
-                wrapped_with_header ? evidence_header->data : evidence);
+            (oe_report_header_t*)(wrapped_with_header ? evidence_header->data : evidence);
 
         OE_TEST(
             report->version == OE_REPORT_HEADER_VERSION &&
@@ -556,8 +556,7 @@ void verify_sgx_evidence(
     {
         // evidence has oe_report_header_t
         oe_report_header_t* report =
-            (oe_report_header_t*)(
-                wrapped_with_header ? evidence_header->data : evidence);
+            (oe_report_header_t*)(wrapped_with_header ? evidence_header->data : evidence);
 
         OE_TEST(
             report->version == OE_REPORT_HEADER_VERSION &&
@@ -758,9 +757,8 @@ void verify_sgx_evidence(
     if (wrapped_with_header &&
         !memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
-        printf(
-            "====== running verify_sgx_evidence failed on treating evidence "
-            "wrapped_with_header as not\n");
+        printf("====== running verify_sgx_evidence failed on treating evidence "
+               "wrapped_with_header as not\n");
 
         // The plugin for the given format_id shall not be able to verify the
         // evidence, but the error code is plugin specific.
@@ -794,9 +792,8 @@ void verify_sgx_evidence(
             (oe_report_header_t*)evidence_header->data;
         OE_SHA256 hash;
 
-        printf(
-            "====== running verify_sgx_evidence on extracted OE_report "
-            "/ SGX_quote\n");
+        printf("====== running verify_sgx_evidence on extracted OE_report "
+               "/ SGX_quote\n");
 
         OE_TEST_CODE(
             oe_sgx_hash_custom_claims(custom_claims, custom_claims_size, &hash),
@@ -844,9 +841,8 @@ void verify_sgx_evidence(
         claims = NULL;
         claims_size = 0;
 
-        printf(
-            "====== running verify_sgx_evidence failed on OE_report"
-            " treated as wrapped_with_header\n");
+        printf("====== running verify_sgx_evidence failed on OE_report"
+               " treated as wrapped_with_header\n");
 
         // oe_verify_evidence() shall fail header check or not be able to
         // find a plugin, since the evidence has no valid attestation header.
