@@ -604,8 +604,8 @@ or `OE_FORMAT_UUID_SGX_ECDSA_P256`, custom claims buffer
 by `oe_verify_evidence()` will contain one claim named
 `OE_CLAIM_CUSTOM_CLAIMS` if the evidence data contains a non-empty custom
 claims buffer. For evidence data in format `OE_FORMAT_UUID_SGX_ECDSA_P256_REPORT`
-or `OE_FORMAT_UUID_SGX_ECDSA_P256_QUOTE`, since this evidence data embeds custom
-claims buffer in its SGX quote directly,
+or `OE_FORMAT_UUID_SGX_ECDSA_P256_QUOTE`, since this evidence data embeds the
+custom claims buffer in its SGX quote directly,
 the list of claims will contain one claim named `OE_CLAIM_SGX_REPORT_DATA`.
 
 To allow test of `oe_verify_evidence()` verification of SGX ECDSA reports and
