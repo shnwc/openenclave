@@ -9,7 +9,6 @@
 #include <openenclave/enclave.h>
 #include <openenclave/internal/report.h>
 #include <openenclave/internal/tests.h>
-#include <openenclave/internal/trace.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -64,6 +63,7 @@ static void _test_evidence_success(const oe_uuid_t* format_id)
 
     oe_result_t r = oe_get_evidence(
         format_id,
+        true,
         claims,
         claims_length,
         NULL,
@@ -130,6 +130,7 @@ static void _test_get_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &_eeid_uuid,
+            true,
             NULL,
             0,
             NULL,
@@ -157,6 +158,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &_eeid_uuid,
+            true,
             NULL,
             0,
             NULL,
@@ -252,6 +254,7 @@ oe_result_t get_eeid_evidence(
     OE_TEST_CODE(
         oe_get_evidence(
             &_eeid_uuid,
+            true,
             NULL,
             0,
             NULL,

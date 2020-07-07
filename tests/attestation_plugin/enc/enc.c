@@ -63,6 +63,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &selected_format,
+            true,
             NULL,
             0,
             NULL,
@@ -76,7 +77,7 @@ static void _test_sgx_remote()
     printf("    ====== evidence_size=%d\n", evidence_size);
 
     verify_sgx_evidence(
-        &selected_format, evidence, evidence_size, NULL, 0, NULL, 0);
+        &selected_format, true, evidence, evidence_size, NULL, 0, NULL, 0);
 
     OE_TEST(oe_free_evidence(evidence) == OE_OK);
 
@@ -85,6 +86,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &selected_format,
+            true,
             NULL,
             0,
             NULL,
@@ -102,6 +104,7 @@ static void _test_sgx_remote()
 
     verify_sgx_evidence(
         &selected_format,
+        true,
         evidence,
         evidence_size,
         endorsements,
@@ -117,6 +120,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &selected_format,
+            true,
             test_claims,
             TEST_CLAIMS_SIZE,
             NULL,
@@ -135,6 +139,7 @@ static void _test_sgx_remote()
 
     verify_sgx_evidence(
         &selected_format,
+        true,
         evidence,
         evidence_size,
         endorsements,
@@ -147,6 +152,7 @@ static void _test_sgx_remote()
     OE_TEST(
         host_verify(
             &selected_format,
+            true,
             evidence,
             evidence_size,
             endorsements,
@@ -160,6 +166,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &_ecdsa_report_uuid,
+            false,
             NULL,
             0,
             NULL,
@@ -171,6 +178,7 @@ static void _test_sgx_remote()
         OE_OK);
     verify_sgx_evidence(
         &_ecdsa_report_uuid,
+        false,
         evidence,
         evidence_size,
         endorsements,
@@ -185,6 +193,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &_ecdsa_quote_uuid,
+            false,
             NULL,
             0,
             NULL,
@@ -196,6 +205,7 @@ static void _test_sgx_remote()
         OE_OK);
     verify_sgx_evidence(
         &_ecdsa_quote_uuid,
+        false,
         evidence,
         evidence_size,
         endorsements,
@@ -230,6 +240,7 @@ static void _test_sgx_local()
     OE_TEST(
         oe_get_evidence(
             &selected_format,
+            true,
             NULL,
             0,
             target,
@@ -240,7 +251,7 @@ static void _test_sgx_local()
             0) == OE_OK);
 
     verify_sgx_evidence(
-        &selected_format, evidence, evidence_size, NULL, 0, NULL, 0);
+        &selected_format, true, evidence, evidence_size, NULL, 0, NULL, 0);
 
     OE_TEST(oe_free_evidence(evidence) == OE_OK);
 
@@ -249,6 +260,7 @@ static void _test_sgx_local()
     OE_TEST(
         oe_get_evidence(
             &selected_format,
+            true,
             test_claims,
             TEST_CLAIMS_SIZE,
             target,
@@ -260,6 +272,7 @@ static void _test_sgx_local()
 
     verify_sgx_evidence(
         &selected_format,
+        true,
         evidence,
         evidence_size,
         NULL,

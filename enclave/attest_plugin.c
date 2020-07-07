@@ -39,32 +39,7 @@ oe_result_t oe_unregister_attester_plugin(oe_attester_t* plugin)
         &attesters, (oe_attestation_role_t*)plugin);
 }
 
-oe_result_t oe_fill_attestation_header(
-    const oe_uuid_t* format_id,
-    const uint8_t* data,
-    size_t data_size,
-    oe_attestation_header_t* header)
-{
-    oe_result_t result = OE_UNEXPECTED;
-
-    if (!format_id || !data || !data_size || !header)
-        OE_RAISE(OE_INVALID_PARAMETER);
-
-    // The header must prefix the data
-    if ((uint8_t*)header + sizeof(*header) != data)
-        OE_RAISE(OE_CONSTRAINT_FAILED);
-
-    header->version = OE_ATTESTATION_HEADER_VERSION;
-    header->format_id = *format_id;
-    header->data_size = data_size;
-
-    result = OE_OK;
-
-done:
-    return result;
-}
-
-oe_result_t oe_wrap_with_attestation_header(
+static oe_result_t _wrap_with_header(
     const oe_uuid_t* format_id,
     const uint8_t* data,
     size_t data_size,
@@ -81,8 +56,9 @@ oe_result_t oe_wrap_with_attestation_header(
         OE_RAISE(OE_OUT_OF_MEMORY);
 
     header = (oe_attestation_header_t*)*total_data;
-    OE_CHECK(
-        oe_fill_attestation_header(format_id, header->data, data_size, header));
+    header->version = OE_ATTESTATION_HEADER_VERSION;
+    header->format_id = *format_id;
+    header->data_size = data_size;
     memcpy(header->data, data, data_size);
 
     result = OE_OK;
@@ -93,6 +69,7 @@ done:
 
 oe_result_t oe_get_evidence(
     const oe_uuid_t* format_id,
+    bool wrap_with_header,
     const void* custom_claims,
     size_t custom_claims_size,
     const void* optional_parameters,
@@ -105,6 +82,14 @@ oe_result_t oe_get_evidence(
     oe_result_t result = OE_UNEXPECTED;
     oe_plugin_list_node_t* plugin_node = NULL;
     oe_attester_t* plugin = NULL;
+    uint8_t* plugin_evidence = NULL;
+    size_t plugin_evidence_size = 0;
+    uint8_t* plugin_endorsements = NULL;
+    size_t plugin_endorsements_size = 0;
+    uint8_t* total_evidence_buf = NULL;
+    size_t total_evidence_size = 0;
+    uint8_t* total_endorsements_buf = NULL;
+    size_t total_endorsements_size = 0;
 
     if (!format_id || !evidence_buffer || !evidence_buffer_size ||
         (endorsements_buffer && !endorsements_buffer_size) ||
@@ -124,18 +109,70 @@ oe_result_t oe_get_evidence(
         custom_claims_size,
         optional_parameters,
         optional_parameters_size,
-        evidence_buffer,
-        evidence_buffer_size,
-        endorsements_buffer,
-        endorsements_buffer_size));
+        &plugin_evidence,
+        &plugin_evidence_size,
+        endorsements_buffer ? &plugin_endorsements : NULL,
+        endorsements_buffer ? &plugin_endorsements_size : NULL));
 
-    // Note: plugin is responsible to wrap evidence and endorsements
-    // with an attestation header, when format_id requires one.
+    // When requested, wrap the attestation header around the evidence.
+    if (wrap_with_header)
+    {
+        OE_CHECK(_wrap_with_header(
+            format_id,
+            plugin_evidence,
+            plugin_evidence_size,
+            &total_evidence_buf,
+            &total_evidence_size));
+
+        if (endorsements_buffer)
+        {
+            OE_CHECK(_wrap_with_header(
+                format_id,
+                plugin_endorsements,
+                plugin_endorsements_size,
+                &total_endorsements_buf,
+                &total_endorsements_size));
+        }
+    }
+    else // !wrap_with_header
+    {
+        total_evidence_buf = plugin_evidence;
+        total_evidence_size = plugin_evidence_size;
+        plugin_evidence = NULL;
+
+        if (endorsements_buffer)
+        {
+            total_endorsements_buf = plugin_endorsements;
+            total_endorsements_size = plugin_endorsements_size;
+            plugin_endorsements = NULL;
+        }
+    }
+
+    // Finally, set the out parameters.
+    *evidence_buffer = total_evidence_buf;
+    *evidence_buffer_size = total_evidence_size;
+    total_evidence_buf = NULL;
+
+    if (endorsements_buffer)
+    {
+        *endorsements_buffer = total_endorsements_buf;
+        *endorsements_buffer_size = total_endorsements_size;
+        total_endorsements_buf = NULL;
+    }
 
     result = OE_OK;
 
 done:
-
+    if (plugin && plugin_evidence)
+    {
+        plugin->free_evidence(plugin, plugin_evidence);
+        if (plugin_endorsements)
+            plugin->free_endorsements(plugin, plugin_endorsements);
+    }
+    if (total_evidence_buf != NULL)
+        oe_free(total_evidence_buf);
+    if (total_endorsements_buf != NULL)
+        oe_free(total_endorsements_buf);
     return result;
 }
 

@@ -66,21 +66,31 @@ static inline oe_result_t mock_get_evidence(
     OE_UNUSED(opt_params);
     OE_UNUSED(opt_params_size);
 
-    OE_CHECK(oe_wrap_with_attestation_header(
-        &context->base.format_id,
-        (uint8_t*)MOCK_EVIDENCE,
-        sizeof(MOCK_EVIDENCE),
-        evidence_buffer,
-        evidence_buffer_size));
+    if (!evidence_buffer || !evidence_buffer_size)
+        OE_RAISE(OE_INVALID_PARAMETER);
+
+    // The evidence buffer must be a dynamically allocated one.
+    *evidence_buffer = oe_malloc(sizeof(MOCK_EVIDENCE));
+    if (!*evidence_buffer)
+        OE_RAISE(OE_OUT_OF_MEMORY);
+
+    memcpy(*evidence_buffer, (uint8_t*)MOCK_EVIDENCE, sizeof(MOCK_EVIDENCE));
+    *evidence_buffer_size = sizeof(MOCK_EVIDENCE);
 
     if (endorsements_buffer)
     {
-        OE_CHECK(oe_wrap_with_attestation_header(
-            &context->base.format_id,
-            (uint8_t*)MOCK_ENDORSEMENTS,
-            sizeof(MOCK_ENDORSEMENTS),
-            endorsements_buffer,
-            endorsements_buffer_size));
+        if (!endorsements_buffer_size)
+            OE_RAISE(OE_INVALID_PARAMETER);
+
+        // The endorsements buffer must be a dynamically allocated one.
+        *endorsements_buffer = oe_malloc(sizeof(MOCK_ENDORSEMENTS));
+        if (!*endorsements_buffer)
+            OE_RAISE(OE_OUT_OF_MEMORY);
+
+        memcpy(
+            *endorsements_buffer, (uint8_t*)MOCK_ENDORSEMENTS,
+            sizeof(MOCK_ENDORSEMENTS));
+        *endorsements_buffer_size = sizeof(MOCK_ENDORSEMENTS);
     }
 
     result = OE_OK;
@@ -103,7 +113,7 @@ static inline oe_result_t mock_free_endorsements(
     uint8_t* endorsements_buffer)
 {
     OE_UNUSED(context);
-    OE_UNUSED(endorsements_buffer);
+    oe_free(endorsements_buffer);
     return OE_OK;
 }
 
@@ -124,13 +134,6 @@ static inline oe_result_t mock_verify_evidence(
     OE_UNUSED(policies);
     OE_UNUSED(policies_size);
 
-    if (evidence_buffer_size <= sizeof(oe_attestation_header_t))
-        return OE_INVALID_PARAMETER;
-
-    // Skip the attestation header.
-    evidence_buffer += sizeof(oe_attestation_header_t);
-    evidence_buffer_size -= sizeof(oe_attestation_header_t);
-
     if (evidence_buffer_size != sizeof(MOCK_EVIDENCE))
         return OE_VERIFY_FAILED;
 
@@ -139,22 +142,6 @@ static inline oe_result_t mock_verify_evidence(
 
     if (endorsements_buffer)
     {
-        oe_attestation_header_t* header =
-            (oe_attestation_header_t*)endorsements_buffer;
-
-        if (endorsements_buffer_size <= sizeof(oe_attestation_header_t))
-            return OE_INVALID_PARAMETER;
-
-        if (memcmp(
-                &context->base.format_id,
-                &header->format_id,
-                sizeof(oe_uuid_t)))
-            return OE_CONSTRAINT_FAILED;
-
-        // Skip the attestation header.
-        endorsements_buffer += sizeof(oe_attestation_header_t);
-        endorsements_buffer_size -= sizeof(oe_attestation_header_t);
-
         if (endorsements_buffer_size != sizeof(MOCK_ENDORSEMENTS))
             return OE_VERIFY_FAILED;
 

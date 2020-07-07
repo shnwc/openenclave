@@ -18,6 +18,7 @@
 
 void host_verify(
     const oe_uuid_t* format_id,
+    bool wrapped_with_header,
     uint8_t* evidence,
     size_t evidence_size,
     uint8_t* endorsements,
@@ -26,6 +27,7 @@ void host_verify(
     printf("====== running host_verify.\n");
     verify_sgx_evidence(
         format_id,
+        wrapped_with_header,
         evidence,
         evidence_size,
         endorsements,

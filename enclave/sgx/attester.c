@@ -96,19 +96,19 @@ static oe_result_t _get_evidence(
         if (!memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
             format_type = SGX_FORMAT_TYPE_REMOTE;
         else if (!memcmp(format_id, &_ecdsa_report_uuid, sizeof(oe_uuid_t)))
-            format_type = SGX_FORMAT_TYPE_REMOTE_REPORT;
+            format_type = SGX_FORMAT_TYPE_LEGACY_REPORT;
         else if (
             !memcmp(format_id, &_ecdsa_quote_uuid, sizeof(oe_uuid_t)) ||
             !memcmp(format_id, &_epid_linkable_uuid, sizeof(oe_uuid_t)) ||
             !memcmp(format_id, &_epid_unlinkable_uuid, sizeof(oe_uuid_t)))
-            format_type = SGX_FORMAT_TYPE_REMOTE_QUOTE;
+            format_type = SGX_FORMAT_TYPE_RAW_QUOTE;
         else
             OE_RAISE(OE_INVALID_PARAMETER);
     }
 
     if (format_type == SGX_FORMAT_TYPE_LOCAL ||
         format_type == SGX_FORMAT_TYPE_REMOTE)
-    { // Evidence of these types has header oe_attestation_header_t
+    { // Evidence of these types has its custom claims hashed.
         OE_SHA256 hash;
 
         // Hash the custom_claims.
@@ -132,26 +132,16 @@ static oe_result_t _get_evidence(
             oe_result_str(result));
 
         // Combine the report and custom_claims to get the evidence.
-        // Format is attestation header || report || custom_claims.
-        tmp_buffer_size =
-            sizeof(oe_attestation_header_t) + report_size + custom_claims_size;
+        tmp_buffer_size = report_size + custom_claims_size;
         tmp_buffer = (uint8_t*)oe_malloc(tmp_buffer_size);
         if (tmp_buffer == NULL)
             OE_RAISE(OE_OUT_OF_MEMORY);
 
-        // Fill the evidence header
-        OE_CHECK(oe_fill_attestation_header(
-            format_id,
-            tmp_buffer + sizeof(oe_attestation_header_t),
-            tmp_buffer_size - sizeof(oe_attestation_header_t),
-            (oe_attestation_header_t*)tmp_buffer));
-
         // Copy SGX report to evidence
-        memcpy(
-            tmp_buffer + sizeof(oe_attestation_header_t), report, report_size);
+        memcpy(tmp_buffer, report, report_size);
         // Copy custom claims to evidence
         memcpy(
-            tmp_buffer + sizeof(oe_attestation_header_t) + report_size,
+            tmp_buffer + report_size,
             custom_claims,
             custom_claims_size);
 
@@ -170,7 +160,7 @@ static oe_result_t _get_evidence(
                 oe_result_str(result));
         }
     }
-    else // SGX_FORMAT_TYPE_REMOTE_REPORT or _QUOTE
+    else // SGX_FORMAT_TYPE_LEGACY_REPORT or _QUOTE
     {
         // Get the report with the custom_claims as the report data.
         // oe_get_report_v2_internal() takes the original &_ecdsa_uuid
@@ -202,7 +192,7 @@ static oe_result_t _get_evidence(
                 oe_result_str(result));
         }
 
-        if (format_type == SGX_FORMAT_TYPE_REMOTE_QUOTE)
+        if (format_type == SGX_FORMAT_TYPE_RAW_QUOTE)
         { // Discard / overwrite oe_report_header_t header
             oe_report_header_t* header = (oe_report_header_t*)report;
             tmp_buffer = report;
@@ -210,7 +200,7 @@ static oe_result_t _get_evidence(
             memmove(tmp_buffer, header->report, tmp_buffer_size);
             report = NULL;
         }
-        else // SGX_FORMAT_TYPE_REMOTE_REPORT
+        else // SGX_FORMAT_TYPE_LEGACY_REPORT
         {
             oe_report_header_t* header = (oe_report_header_t*)report;
             tmp_buffer = report;
@@ -223,35 +213,11 @@ static oe_result_t _get_evidence(
     *evidence_buffer_size = tmp_buffer_size;
     tmp_buffer = NULL;
 
-    if (endorsements_buffer && endorsements)
+    if (endorsements_buffer)
     {
-        if (endorsements)
-        {
-            if (format_type == SGX_FORMAT_TYPE_REMOTE)
-            { // Prefix endorsements with an attestation header
-                OE_CHECK(oe_wrap_with_attestation_header(
-                    format_id,
-                    endorsements,
-                    endorsements_size,
-                    endorsements_buffer,
-                    endorsements_buffer_size));
-            }
-            else
-            {
-                *endorsements_buffer = endorsements;
-                *endorsements_buffer_size = endorsements_size;
-                endorsements = NULL;
-            }
-            OE_TRACE_INFO(
-                "evi_size=%lu end_size=%lu",
-                *evidence_buffer_size,
-                *endorsements_buffer_size);
-        }
-        else
-        {
-            *endorsements_buffer = NULL;
-            *endorsements_buffer_size = 0;
-        }
+        *endorsements_buffer = endorsements;
+        *endorsements_buffer_size = endorsements_size;
+        endorsements = NULL;
     }
     result = OE_OK;
 

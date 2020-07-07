@@ -20,6 +20,27 @@
 
 OE_EXTERNC_BEGIN
 
+/**
+ * Evidence header: the structure that the OE SDK runtime puts on top of
+ * evidence data, for format IDs that require it.
+ */
+typedef struct _oe_attestation_header
+{
+    /* Set to OE_ATTESTATION_HEADER_VERSION. */
+    uint32_t version;
+
+    /* UUID to identify format. */
+    oe_uuid_t format_id;
+
+    /* Size of evidence/endorsements sent to the plugin. */
+    uint64_t data_size;
+
+    /* The actual data */
+    uint8_t data[];
+
+    /* data_size bytes that follows the header will be sent to a plugin. */
+} oe_attestation_header_t;
+
 // Struct definition to represent the list of plugins.
 typedef struct _plugin_list_node_t
 {

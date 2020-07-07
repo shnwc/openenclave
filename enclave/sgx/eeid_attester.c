@@ -111,9 +111,7 @@ static oe_result_t _eeid_get_evidence(
 {
     uint32_t flags = 0;
     oe_result_t result = OE_UNEXPECTED;
-    oe_endorsements_t* endorsements = NULL;
     oe_eeid_evidence_t* evidence = NULL;
-    size_t evidence_size = 0;
     uint8_t *sgx_evidence_buffer = NULL, *sgx_endorsements_buffer = NULL;
     size_t sgx_evidence_buffer_size = 0, sgx_endorsements_buffer_size = 0;
     const oe_eeid_t* eeid = __oe_get_eeid();
@@ -152,10 +150,11 @@ static oe_result_t _eeid_get_evidence(
         &sgx_endorsements_buffer_size));
 
     // Prepare EEID evidence, prefixed with an attestation header.
-    evidence_size = sizeof(oe_eeid_evidence_t) + sgx_evidence_buffer_size +
-                    sgx_endorsements_buffer_size + eeid_size;
+    *evidence_buffer_size = sizeof(oe_eeid_evidence_t) +
+                            sgx_evidence_buffer_size +
+                            sgx_endorsements_buffer_size + eeid_size;
 
-    evidence = oe_malloc(evidence_size);
+    evidence = oe_malloc(*evidence_buffer_size);
     if (!evidence)
         OE_RAISE(OE_OUT_OF_MEMORY);
 
@@ -178,42 +177,23 @@ static oe_result_t _eeid_get_evidence(
             evidence->sgx_endorsements_size,
         eeid_size));
 
-    // Output evidence is prefixed with an attestation header
-    *evidence_buffer_size = sizeof(oe_attestation_header_t) + evidence_size;
+    // Write evidence. This can't be done in-place.
     *evidence_buffer = oe_malloc(*evidence_buffer_size);
     if (!*evidence_buffer)
         OE_RAISE(OE_OUT_OF_MEMORY);
-
-    // Write evidence. This can't be done in-place.
     OE_CHECK(oe_eeid_evidence_hton(
-        evidence,
-        *evidence_buffer + sizeof(oe_attestation_header_t),
-        evidence_size));
-
-    // Fill the evidence header.
-    OE_CHECK(oe_fill_attestation_header(
-        &context->base.format_id,
-        *evidence_buffer + sizeof(oe_attestation_header_t),
-        evidence_size,
-        (oe_attestation_header_t*)*evidence_buffer));
+        evidence, *evidence_buffer, *evidence_buffer_size));
 
     // Write endorsements
     if (endorsements_buffer)
     {
-        *endorsements_buffer_size = sizeof(oe_attestation_header_t) + eeid_size;
+        *endorsements_buffer_size = eeid_size;
         *endorsements_buffer = oe_malloc(*endorsements_buffer_size);
         if (!*endorsements_buffer)
             OE_RAISE(OE_OUT_OF_MEMORY);
 
-        oe_fill_attestation_header(
-            &context->base.format_id,
-            *endorsements_buffer + sizeof(oe_attestation_header_t),
-            eeid_size,
-            (oe_attestation_header_t*)*endorsements_buffer);
         OE_CHECK(oe_eeid_hton(
-            eeid,
-            *endorsements_buffer + sizeof(oe_attestation_header_t),
-            eeid_size));
+            eeid, *endorsements_buffer, *endorsements_buffer_size));
     }
 
     result = OE_OK;
@@ -223,7 +203,6 @@ done:
     oe_free(sgx_evidence_buffer);
     oe_free(sgx_endorsements_buffer);
     oe_free(evidence);
-    oe_free(endorsements);
 
     return result;
 }

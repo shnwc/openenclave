@@ -74,6 +74,9 @@ oe_result_t oe_attester_select_format(
  * @experimental
  *
  * @param[in] format_id The format ID of the evidence to be generated.
+ * @param[in] wrap_with_header A flag indicating whether the evidence and
+ * endorsements will be wrapped with an attestation header containing the
+ * format ID.
  * @param[in] custom_claims The optional custom claims buffer.
  * @param[in] custom_claims_size The number of bytes in the custom claims
  * buffer.
@@ -83,8 +86,8 @@ oe_result_t oe_attester_select_format(
  * address of the dynamically allocated evidence buffer.
  * @param[out] evidence_buffer_size A pointer that points to the size of the
  * evidence buffer in bytes.
- * @param[out] endorsements_buffer An output pointer that will be assigned the
- * address of the  dynamically allocated endorsements buffer.
+ * @param[out] endorsements_buffer If not NULL, an output pointer that will be
+ * assigned the address of the dynamically allocated endorsements buffer.
  * @param[out] endorsements_buffer_size A pointer that points to the size of the
  * endorsements buffer in bytes.
  * @retval OE_OK The function succeeded.
@@ -94,6 +97,7 @@ oe_result_t oe_attester_select_format(
  */
 oe_result_t oe_get_evidence(
     const oe_uuid_t* format_id,
+    bool wrap_with_header,
     const void* custom_claims,
     size_t custom_claims_size,
     const void* optional_parameters,

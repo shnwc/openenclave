@@ -17,6 +17,7 @@ void unregister_verifier();
 
 void verify_sgx_evidence(
     const oe_uuid_t* format_id,
+    bool wrapped_with_header,
     const uint8_t* evidence,
     size_t evidence_size,
     const uint8_t* endorsements,

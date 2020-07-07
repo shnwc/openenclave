@@ -165,7 +165,7 @@ static oe_result_t _process_sgx_report_data(
                      ? OE_OK
                      : OE_QUOTE_HASH_MISMATCH;
     }
-    else // SGX_FORMAT_TYPE_REMOTE_REPORT or _QUOTE
+    else // SGX_FORMAT_TYPE_LEGACY_REPORT or SGX_FORMAT_TYPE_RAW_QUOTE
     {
         // These types of evidence does not contain custom claims buffer.
         // SGX report data is returned.
@@ -448,7 +448,7 @@ oe_result_t oe_sgx_extract_claims(
                 custom_claims,
                 custom_claims_size));
         }
-        else // SGX_FORMAT_TYPE_REMOTE_REPORT and _QUOTE
+        else // SGX_FORMAT_TYPE_LEGACY_REPORT and _QUOTE
         {
             // Add SGX report data claim
             char* name = OE_CLAIM_SGX_REPORT_DATA;
@@ -489,9 +489,6 @@ static oe_result_t _verify_evidence(
     size_t local_endorsements_buffer_size = 0;
     oe_sgx_endorsements_t sgx_endorsements;
     sgx_evidence_format_type_t format_type = SGX_FORMAT_TYPE_UNKNOWN;
-    // evidence_buffer can have oe_attestation_header_t and
-    // oe_report_header_t. Only report body is verified.
-    // Then the custom claims buffer, if it exists, is verified and extracted.
     const uint8_t* report_body = NULL;
     size_t report_body_size = 0;
     const uint8_t* custom_claims = NULL;
@@ -509,16 +506,12 @@ static oe_result_t _verify_evidence(
 
     if (!memcmp(format_id, &_local_uuid, sizeof(oe_uuid_t)))
     {
-        // evidence_buffer has oe_attestation_header_t and oe_report_header_t
-        // headers, followed by an SGX report for local attestation.
-        oe_attestation_header_t* evidence =
-            (oe_attestation_header_t*)evidence_buffer;
-        oe_report_header_t* report = (oe_report_header_t*)evidence->data;
+        // evidence_buffer has oe_report_header_t header,
+        // followed by an SGX report for local attestation.
+        oe_report_header_t* report = (oe_report_header_t*)evidence_buffer;
 
-        OE_CHECK(oe_verify_attestation_header(
-            evidence_buffer, evidence_buffer_size));
-
-        if (report->version != OE_REPORT_HEADER_VERSION ||
+        if (evidence_buffer_size < sizeof(*report) ||
+            report->version != OE_REPORT_HEADER_VERSION ||
             report->report_type != OE_REPORT_TYPE_SGX_LOCAL)
             OE_RAISE(OE_INVALID_PARAMETER);
 
@@ -526,16 +519,12 @@ static oe_result_t _verify_evidence(
     }
     else if (!memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
-        // evidence_buffer has oe_attestation_header_t and oe_report_header_t
-        // headers, followed by an SGX ECDSA-p256 quote.
-        oe_attestation_header_t* evidence =
-            (oe_attestation_header_t*)evidence_buffer;
-        oe_report_header_t* report = (oe_report_header_t*)evidence->data;
+        // evidence_buffer has oe_report_header_t header,
+        // followed by an SGX ECDSA-p256 quote.
+        oe_report_header_t* report = (oe_report_header_t*)evidence_buffer;
 
-        OE_CHECK(oe_verify_attestation_header(
-            evidence_buffer, evidence_buffer_size));
-
-        if (report->version != OE_REPORT_HEADER_VERSION ||
+        if (evidence_buffer_size < sizeof(*report) ||
+            report->version != OE_REPORT_HEADER_VERSION ||
             report->report_type != OE_REPORT_TYPE_SGX_REMOTE)
             OE_RAISE(OE_INVALID_PARAMETER);
 
@@ -547,23 +536,19 @@ static oe_result_t _verify_evidence(
         // followed by an SGX ECDSA-p256 quote.
         oe_report_header_t* report = (oe_report_header_t*)evidence_buffer;
 
-        if (evidence_buffer_size < sizeof(oe_report_header_t))
-            OE_RAISE(OE_INVALID_PARAMETER);
-
-        if (report->version != OE_REPORT_HEADER_VERSION ||
+        if (evidence_buffer_size < sizeof(*report) ||
+            report->version != OE_REPORT_HEADER_VERSION ||
             report->report_type != OE_REPORT_TYPE_SGX_REMOTE)
             OE_RAISE(OE_INVALID_PARAMETER);
 
-        format_type = SGX_FORMAT_TYPE_REMOTE_REPORT;
+        format_type = SGX_FORMAT_TYPE_LEGACY_REPORT;
     }
     else if (!memcmp(format_id, &_ecdsa_quote_uuid, sizeof(oe_uuid_t)))
     {
         // evidence_buffer has no header.
         // It contains a raw SGX ECDSA-p256 quote.
-        if (!evidence_buffer_size)
-            OE_RAISE(OE_INVALID_PARAMETER);
 
-        format_type = SGX_FORMAT_TYPE_REMOTE_QUOTE;
+        format_type = SGX_FORMAT_TYPE_RAW_QUOTE;
     }
     else
         OE_RAISE(OE_INVALID_PARAMETER);
@@ -572,35 +557,29 @@ static oe_result_t _verify_evidence(
     // not including the custom claims section.
     if (format_type == SGX_FORMAT_TYPE_LOCAL)
     {
-        // evidence_buffer has oe_attestation_header_t and oe_report_header_t,
-        // _verify_local_report() needs only oe_report_header_t + report body.
-        oe_attestation_header_t* evidence =
-            (oe_attestation_header_t*)evidence_buffer;
-        oe_report_header_t* report = (oe_report_header_t*)evidence->data;
+        oe_report_header_t* report = (oe_report_header_t*)evidence_buffer;
 
         report_body = report->report;
         report_body_size = report->report_size;
         custom_claims = report_body + report_body_size;
         custom_claims_size =
-            evidence->data_size - (sizeof(*report) + report_body_size);
+            evidence_buffer_size - (sizeof(*report) + report_body_size);
 
         OE_CHECK(_verify_local_report(
-            evidence->data, report->report_size + sizeof(oe_report_header_t)));
+            evidence_buffer, report->report_size + sizeof(oe_report_header_t)));
     }
-    else // SGX_FORMAT_TYPE_REMOTE*
+    else
     {
         if (format_type == SGX_FORMAT_TYPE_REMOTE)
         {
-            oe_attestation_header_t* evidence =
-                (oe_attestation_header_t*)evidence_buffer;
-            oe_report_header_t* report = (oe_report_header_t*)evidence->data;
+            oe_report_header_t* report = (oe_report_header_t*)evidence_buffer;
             report_body = report->report;
             report_body_size = report->report_size;
             custom_claims = report_body + report_body_size;
             custom_claims_size =
-                evidence->data_size - (sizeof(*report) + report_body_size);
+                evidence_buffer_size - (sizeof(*report) + report_body_size);
         }
-        else if (format_type == SGX_FORMAT_TYPE_REMOTE_REPORT)
+        else if (format_type == SGX_FORMAT_TYPE_LEGACY_REPORT)
         {
             oe_report_header_t* report = (oe_report_header_t*)evidence_buffer;
             report_body = report->report;
@@ -608,7 +587,7 @@ static oe_result_t _verify_evidence(
             custom_claims = NULL;
             custom_claims_size = 0;
         }
-        else // SGX_FORMAT_TYPE_REMOTE_QUOTE
+        else // SGX_FORMAT_TYPE_RAW_QUOTE
         {
             report_body = evidence_buffer;
             report_body_size = evidence_buffer_size;
@@ -627,29 +606,6 @@ static oe_result_t _verify_evidence(
             endorsements_buffer = local_endorsements_buffer;
             endorsements_buffer_size = local_endorsements_buffer_size;
         }
-        else
-        {
-            // If attestation header is present, verify and discard it.
-            if (format_type == SGX_FORMAT_TYPE_LOCAL ||
-                format_type == SGX_FORMAT_TYPE_REMOTE)
-            {
-                oe_attestation_header_t* header =
-                    (oe_attestation_header_t*)endorsements_buffer;
-
-                if (endorsements_buffer_size < sizeof(*header))
-                    OE_RAISE(OE_INVALID_PARAMETER);
-
-                if (memcmp(format_id, &header->format_id, sizeof(*format_id)))
-                    OE_RAISE(OE_CONSTRAINT_FAILED);
-
-                endorsements_buffer += sizeof(*header);
-                endorsements_buffer_size -= sizeof(*header);
-            }
-        }
-        OE_TRACE_INFO(
-            "rep_size=%lu end_size=%lu",
-            report_body_size,
-            endorsements_buffer_size);
 
         // Parse into SGX endorsements.
         OE_CHECK(oe_parse_sgx_endorsements(

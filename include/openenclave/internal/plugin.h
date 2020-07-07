@@ -24,27 +24,6 @@
 OE_EXTERNC_BEGIN
 
 /**
- * Evidence header: the structure that the OE SDK runtime puts on top of
- * evidence data, for format IDs that require it.
- */
-typedef struct _oe_attestation_header
-{
-    /* Set to OE_ATTESTATION_HEADER_VERSION. */
-    uint32_t version;
-
-    /* UUID to identify format. */
-    oe_uuid_t format_id;
-
-    /* Size of evidence/endorsements sent to the plugin. */
-    uint64_t data_size;
-
-    /* The actual data */
-    uint8_t data[];
-
-    /* data_size bytes that follows the header will be sent to a plugin. */
-} oe_attestation_header_t;
-
-/**
  * Struct that defines the base structure of each attestation role plugin.
  * Each plugin will have an UUID to indicate what evidence format
  * is supported and have functions for registering/unregistering the plugin.
@@ -495,67 +474,6 @@ oe_result_t oe_unregister_verifier_plugin(oe_verifier_t* plugin);
 oe_result_t oe_find_verifier_plugin(
     const oe_uuid_t* format_id,
     oe_verifier_t** verifier_plugin);
-
-/**
- * Fill the supplied header with supplied value and the version number.
- *
- * Available only in enclave.
- *
- * @param[in] format_id The format ID for the input data.
- * @param[in] data The input data for which the header is.
- * @param[in] data_size The size of the input data.
- * @param[in,out] header The header to be filled with the needed values.
- * @retval OE_OK on success.
- * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
- * @retval OE_CONSTRAINT_FAILED If the header does not prefix the data.
- * @retval An appropriate error code on failure.
- */
-oe_result_t oe_fill_attestation_header(
-    const oe_uuid_t* format_id,
-    const uint8_t* data,
-    size_t data_size,
-    oe_attestation_header_t* header);
-
-/**
- * Wrap supplied evidence / endorsements data with an attestation header,
- * put the resultant wrapped data in a dynamically allocated buffer.
- *
- * Available only in enclave.
- *
- * @param[in] format_id The format ID for the input data.
- * @param[in] data The input data to be wrapped.
- * @param[in] data_size The size of the input data.
- * @param[out] total_data Pointer a variable that points to the dynamically
- * allocated buffer that holds the wrapped data.
- * @param[out] total_data_size Pointer to a variable that holds the size
- * of the wrapped data.
- * @retval OE_OK on success.
- * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
- * @retval An appropriate error code on failure.
- */
-oe_result_t oe_wrap_with_attestation_header(
-    const oe_uuid_t* format_id,
-    const uint8_t* data,
-    size_t data_size,
-    uint8_t** total_data,
-    size_t* total_data_size);
-
-/**
- * Verify the attestation header prefixed in input evidence / endorsements
- * buffer.
- *
- * Available in both enclave and host.
- *
- * @param[in] data_buffer The evidence / endorsements buffer prefixed with
- * the header to be verified.
- * @param[in] data_buffer_size The size of the input data buffer.
- * @retval OE_OK on success.
- * @retval OE_INVALID_PARAMETER At least one parameter is invalid.
- * @retval An appropriate error code on failure.
- */
-oe_result_t oe_verify_attestation_header(
-    const uint8_t* data_buffer,
-    size_t data_buffer_size);
 
 OE_EXTERNC_END
 

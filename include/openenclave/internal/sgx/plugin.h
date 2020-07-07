@@ -14,8 +14,8 @@ typedef enum _sgx_evidence_format_type_t
     SGX_FORMAT_TYPE_UNKNOWN = 0,
     SGX_FORMAT_TYPE_LOCAL = 1,         // Evidence for SGX local attestation
     SGX_FORMAT_TYPE_REMOTE = 2,        // Evidence for SGX remote attestation
-    SGX_FORMAT_TYPE_REMOTE_REPORT = 3, // Report for SGX remote attestation
-    SGX_FORMAT_TYPE_REMOTE_QUOTE = 4   // Raw SGX quote
+    SGX_FORMAT_TYPE_LEGACY_REPORT = 3, // Report for SGX remote attestation
+    SGX_FORMAT_TYPE_RAW_QUOTE = 4      // Raw SGX quote
 } sgx_evidence_format_type_t;
 
 /**

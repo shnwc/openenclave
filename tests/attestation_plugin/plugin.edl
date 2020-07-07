@@ -3,7 +3,8 @@
 
 enclave {
     from "openenclave/edl/attestation.edl" import *;
-    from "openenclave/edl/logging.edl" import oe_write_ocall;
+    from "openenclave/edl/logging.edl" import *;
+    //oe_write_ocall;
     from "openenclave/edl/syscall.edl" import *;
     from "platform.edl" import *;
 
@@ -17,6 +18,7 @@ enclave {
     untrusted {
         void host_verify(
             [in] const oe_uuid_t* format_id,
+            bool wrapped_with_header,
             [in, size=evidence_size] uint8_t* evidence,
             size_t evidence_size,
             [in, size=endorsements_size] uint8_t* endorsements,

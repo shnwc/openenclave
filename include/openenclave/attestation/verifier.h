@@ -137,10 +137,11 @@ oe_result_t oe_verifier_free_format_settings(uint8_t* settings);
  * @experimental
  *
  * @param[in] format_id The optional format UUID of the evidence to be verified.
- * If this parameter is NULL, the evidence_buffer must contain evidence data
- * with a header that contains a valid format ID. Otherwise, this parameter
- * must hold a valid format ID that identifies the type of evidence data held in
- * the evidence_buffer.
+ * If this parameter is NULL, the evidence_buffer (and endorsement_buffer if
+ * not NULL) must contain data with an attestation header holding a valid
+ * format ID. Otherwise, this parameter must hold a valid format ID, and the
+ * envidence and endorsements data must not be wrapped with an attestation
+ * header.
  * @param[in] evidence_buffer The evidence buffer.
  * @param[in] evidence_buffer_size The size of evidence_buffer in bytes.
  * @param[in] endorsements_buffer The optional endorsements buffer.

@@ -126,6 +126,7 @@ static void _test_evidence_success(
     OE_TEST_CODE(
         oe_get_evidence(
             format_id,
+            true,
             NULL,
             0,
             NULL,
@@ -138,7 +139,7 @@ static void _test_evidence_success(
 
     OE_TEST_CODE(
         oe_verify_evidence(
-            format_id,
+            NULL,
             evidence,
             evidence_size,
             endorsements,
@@ -169,6 +170,7 @@ static void _test_get_evidence_fail()
     OE_TEST(
         oe_get_evidence(
             &mock_attester1.base.format_id,
+            true,
             NULL,
             0,
             NULL,
@@ -194,6 +196,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &mock_attester1.base.format_id,
+            true,
             NULL,
             0,
             NULL,
@@ -207,7 +210,7 @@ static void _test_verify_evidence_fail()
     // Test verify_evidence with wrong sizes
     OE_TEST_CODE(
         oe_verify_evidence(
-            &mock_attester1.base.format_id,
+            NULL,
             evidence,
             0,
             endorsements,
@@ -220,7 +223,7 @@ static void _test_verify_evidence_fail()
 
     OE_TEST(
         oe_verify_evidence(
-            &mock_attester1.base.format_id,
+            NULL,
             evidence,
             evidence_size,
             endorsements,
@@ -234,7 +237,7 @@ static void _test_verify_evidence_fail()
     OE_TEST(oe_unregister_verifier_plugin(&mock_verifier1) == OE_OK);
     OE_TEST(
         oe_verify_evidence(
-            &mock_attester1.base.format_id,
+            NULL,
             evidence,
             evidence_size,
             endorsements,
@@ -256,6 +259,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &mock_attester2.base.format_id,
+            true,
             NULL,
             0,
             NULL,
@@ -268,7 +272,7 @@ static void _test_verify_evidence_fail()
 
     OE_TEST_CODE(
         oe_verify_evidence(
-            &mock_attester2.base.format_id,
+            NULL,
             evidence2,
             evidence2_size,
             endorsements,
@@ -288,7 +292,7 @@ static void _test_verify_evidence_fail()
 
     OE_TEST(
         oe_verify_evidence(
-            &mock_attester2.base.format_id,
+            NULL,
             evidence,
             evidence_size,
             endorsements,
@@ -415,6 +419,7 @@ static void _test_time(
 
 static void _test_time_policy(
     const oe_uuid_t* format_id,
+    bool wrapped_with_header,
     const uint8_t* evidence,
     size_t evidence_size,
     const uint8_t* endorsements,
@@ -432,9 +437,9 @@ static void _test_time_policy(
     policy.policy_size = sizeof(dt);
 
     dt = *from;
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_evidence(
-            format_id,
+            wrapped_with_header ? NULL : format_id,
             evidence,
             evidence_size,
             endorsements,
@@ -442,13 +447,13 @@ static void _test_time_policy(
             &policy,
             1,
             &claims,
-            &claims_size) == OE_OK);
+            &claims_size), OE_OK);
     OE_TEST(oe_free_claims(claims, claims_size) == OE_OK);
 
     dt = *until;
     OE_TEST(
         oe_verify_evidence(
-            format_id,
+            wrapped_with_header ? NULL : format_id,
             evidence,
             evidence_size,
             endorsements,
@@ -463,7 +468,7 @@ static void _test_time_policy(
     dt.year--;
     OE_TEST(
         oe_verify_evidence(
-            format_id,
+            wrapped_with_header ? NULL : format_id,
             evidence,
             evidence_size,
             endorsements,
@@ -477,7 +482,7 @@ static void _test_time_policy(
     dt.year++;
     OE_TEST(
         oe_verify_evidence(
-            format_id,
+            wrapped_with_header ? NULL : format_id,
             evidence,
             evidence_size,
             endorsements,
@@ -497,6 +502,7 @@ static const oe_uuid_t _ecdsa_quote_uuid = {
 
 void verify_sgx_evidence(
     const oe_uuid_t* format_id,
+    bool wrapped_with_header,
     const uint8_t* evidence,
     size_t evidence_size,
     const uint8_t* endorsements,
@@ -532,11 +538,10 @@ void verify_sgx_evidence(
 
     if (!memcmp(format_id, &_local_uuid, sizeof(oe_uuid_t)))
     {
-        // evidence_buffer has oe_attestation_header_t and oe_report_header_t
-        oe_report_header_t* report = (oe_report_header_t*)evidence_header->data;
-
-        OE_TEST_CODE(
-            oe_verify_attestation_header(evidence, evidence_size), OE_OK);
+        // evidence has oe_report_header_t
+        oe_report_header_t* report =
+            (oe_report_header_t*)(
+                wrapped_with_header ? evidence_header->data : evidence);
 
         OE_TEST(
             report->version == OE_REPORT_HEADER_VERSION &&
@@ -549,11 +554,10 @@ void verify_sgx_evidence(
     }
     else if (!memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
-        // evidence_buffer has oe_attestation_header_t and oe_report_header_t
-        oe_report_header_t* report = (oe_report_header_t*)evidence_header->data;
-
-        OE_TEST_CODE(
-            oe_verify_attestation_header(evidence, evidence_size), OE_OK);
+        // evidence has oe_report_header_t
+        oe_report_header_t* report =
+            (oe_report_header_t*)(
+                wrapped_with_header ? evidence_header->data : evidence);
 
         OE_TEST(
             report->version == OE_REPORT_HEADER_VERSION &&
@@ -563,14 +567,6 @@ void verify_sgx_evidence(
         report_body = report->report;
         report_body_size = report->report_size;
         is_local = false;
-
-        if (endorsements)
-        {
-            oe_attestation_header_t* endorsements_header =
-                (oe_attestation_header_t*)endorsements;
-            endorsements_body = endorsements_header->data;
-            endorsements_body_size = endorsements_header->data_size;
-        }
     }
     else if (!memcmp(format_id, &_ecdsa_report_uuid, sizeof(oe_uuid_t)))
     {
@@ -583,37 +579,41 @@ void verify_sgx_evidence(
             report->version == OE_REPORT_HEADER_VERSION &&
             report->report_type == OE_REPORT_TYPE_SGX_REMOTE);
 
-        format_type = SGX_FORMAT_TYPE_REMOTE_REPORT;
+        format_type = SGX_FORMAT_TYPE_LEGACY_REPORT;
         report_body = report->report;
         report_body_size = report->report_size;
         is_local = false;
-
-        if (endorsements)
-        {
-            endorsements_body = endorsements;
-            endorsements_body_size = endorsements_size;
-        }
     }
     else if (!memcmp(format_id, &_ecdsa_quote_uuid, sizeof(oe_uuid_t)))
     {
-        format_type = SGX_FORMAT_TYPE_REMOTE_QUOTE;
+        format_type = SGX_FORMAT_TYPE_RAW_QUOTE;
         report_body = evidence;
         report_body_size = evidence_size;
         is_local = false;
-
-        if (endorsements)
-        {
-            endorsements_body = endorsements;
-            endorsements_body_size = endorsements_size;
-        }
     }
     else
         OE_TEST_CODE(OE_INVALID_PARAMETER, OE_OK);
 
+    if (endorsements && wrapped_with_header)
+    {
+        oe_attestation_header_t* endorsements_header =
+            (oe_attestation_header_t*)endorsements;
+
+        OE_TEST(endorsements_size >= sizeof(oe_attestation_header_t));
+
+        endorsements_body = endorsements_header->data;
+        endorsements_body_size = endorsements_header->data_size;
+    }
+    else
+    {
+        endorsements_body = endorsements;
+        endorsements_body_size = endorsements_size;
+    }
+
     // Try with no policies.
     OE_TEST_CODE(
         oe_verify_evidence(
-            format_id,
+            wrapped_with_header ? NULL : format_id,
             evidence,
             evidence_size,
             endorsements,
@@ -696,6 +696,7 @@ void verify_sgx_evidence(
 
         _test_time_policy(
             format_id,
+            wrapped_with_header,
             evidence,
             evidence_size,
             endorsements,
@@ -734,7 +735,7 @@ void verify_sgx_evidence(
 
         OE_TEST(
             oe_verify_evidence(
-                format_id,
+                wrapped_with_header ? NULL : format_id,
                 evidence,
                 evidence_size,
                 endorsements,
@@ -751,18 +752,51 @@ void verify_sgx_evidence(
         evidence_header->data[evidence_header->data_size - 1] ^= 1;
     }
 
+    // Test SGX evidence verification with wrong attestation header flag.
+    // For evidence with attestation header, the format_id parameter for
+    // oe_verify_evidence() should be NULL.
+    if (wrapped_with_header &&
+        !memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
+    {
+        printf(
+            "====== running verify_sgx_evidence failed on treating evidence "
+            "wrapped_with_header as not\n");
+
+        // The plugin for the given format_id shall not be able to verify the
+        // evidence, but the error code is plugin specific.
+        OE_TEST(
+            oe_verify_evidence(
+                format_id,
+                evidence,
+                evidence_size,
+                endorsements,
+                endorsements_size,
+                NULL,
+                0,
+                &claims,
+                &claims_size) != OE_OK);
+
+        OE_TEST_CODE(oe_free_claims(claims, claims_size), OE_OK);
+        claims = NULL;
+        claims_size = 0;
+    }
+
     // Extract legacy OE report and SGX quote from ECDSA evidence
     // and verify them using the conrresponding legacy format IDs.
     // Accompanied endorsements data (wrappwed with a header) is dropped
-    if (!memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
+    if (wrapped_with_header &&
+        !memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
+        oe_result_t result;
         oe_attestation_header_t* evidence_header =
             (oe_attestation_header_t*)evidence;
         oe_report_header_t* report_header =
             (oe_report_header_t*)evidence_header->data;
         OE_SHA256 hash;
 
-        printf("====== running verify_sgx_evidence on OE_report / SGX_quote\n");
+        printf(
+            "====== running verify_sgx_evidence on extracted OE_report "
+            "/ SGX_quote\n");
 
         OE_TEST_CODE(
             oe_sgx_hash_custom_claims(custom_claims, custom_claims_size, &hash),
@@ -809,6 +843,26 @@ void verify_sgx_evidence(
         OE_TEST_CODE(oe_free_claims(claims, claims_size), OE_OK);
         claims = NULL;
         claims_size = 0;
+
+        printf(
+            "====== running verify_sgx_evidence failed on OE_report"
+            " treated as wrapped_with_header\n");
+
+        // oe_verify_evidence() shall fail header check or not be able to
+        // find a plugin, since the evidence has no valid attestation header.
+        result = oe_verify_evidence(
+            NULL,
+            evidence_header->data,
+            sizeof(oe_report_header_t) + report_header->report_size,
+            NULL,
+            0,
+            NULL,
+            0,
+            &claims,
+            &claims_size);
+        OE_TEST(result == OE_INVALID_PARAMETER || result == OE_NOT_FOUND);
+
+        // With failed oe_verify_evidence(), no claims are returned.
 
         printf("====== done verify_sgx_evidence on OE_report / SGX_quote\n");
     }
