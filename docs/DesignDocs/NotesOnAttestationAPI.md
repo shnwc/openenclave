@@ -3,8 +3,7 @@ Notes on OE SDK Attestation API and Plugin Library Design
 
 This document contains notes on the concepts and assumptions behind the design
 of the TEE-agnostic OE SDK Attestation API as described in document
-[Proposal of OE SDK Attestation Public and Plugin API for V0.10 Release](https://github.com/openenclave/openenclave/pull/2949)
-(as of March 2020).
+[Proposal of OE SDK Attestation Public and Plugin API for V0.10 Release](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/Attestation_API_Proposal.md).
 It also captures notes on the design of SGX plugins as explained in document
 [Attestation: OE SDK Integration with Intel® SGX SDK quote-ex Library for Generation of Evidence in New Formats](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/SGX_QuoteEx_Integration.md).
 
@@ -15,7 +14,11 @@ usage, and the SGX plugin design.
 
 ## Semantics of Custom Claims and Optional Parameters
 
-Among all the parameters for the OE SDK API function `oe_get_evidence()`,
+This section explains the custom claims vs optional parameters for the [OE SDK attestation API](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/Attestation_API_Proposal.md#proposed-oe-sdk-v010-public-api)
+function `oe_get_evidence()`.
+
+Among all the parameters for the OE SDK attestation API
+function `oe_get_evidence()`,
 two of them are a list of custom claims (`custom_claims`) and an optional
 parameters blob(`opt_params`). While in general the fields in these two
 parameters fit the definition of the term "Claims" defined in the
@@ -30,9 +33,8 @@ what goes into the optional parameters (`opt_params`) in the function
 two entities.
 
 - Custom claims have well-defined semantics:
-  - Custom claims can be any name-value pair.
-  The name and the value fields are null-terminated byte strings.
-  Other than that, there is no additional requirement on their format or content.
+  - Custom claims can be any flat array of bytes supplied by attester
+  applications.
   - Custom claims are only meaningful to attester / verifier applications.
   They are not inspected or interpreted by the OE SDK or its plugins.
   - They are always TEE agnostic
@@ -104,9 +106,12 @@ won’t be able to verify this SGX report.
 
 ## Attester – Verifier Security Model and TEE Agnostic Design
 
+This section explains how the proposed [OE SDK attestation API](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/Attestation_API_Proposal.md#proposed-oe-sdk-v010-public-api)
+is designed to be TEE-agnostic.
+
 - The OE SDK is designed for attester and verifier software to be TEE agnostic,
 so that the same source code can be built for and run on different platforms
-- But owners of attesters and verifiers define their security policies,
+- But owners of attesters and verifiers define their security appraisal policies,
 and the policies are not TEE agnostic. For example:
   - The policies define which TEEs, platforms and configurations are trusted
   to run the attesters and verifiers.
@@ -120,21 +125,27 @@ and the policies are not TEE agnostic. For example:
     and SGX EPID evidence formats.
 - The OE SDK provides means for the attesters and verifiers to be built and
 configured for specified TEEs and platforms, and to generate or verify evidences
-in the list of acceptable formats as defined in the security policies.
+in the list of acceptable formats as defined in the appraisal policies.
   - The OE SDK attestation API enables the attesters and verifiers to register
   the plugins that are built, configured, and working
   properly, and enumerate the supported list of evidence formats covered by
   these plugins.
   For a specific attester or verifier instance, the supported list
   of evidence formats is not required to perfectly match the acceptable list
-  defined in the security policies.
+  defined in the appraisal policies.
 
 # Notes on SGX Plugins Design
 
 ## Evidence Format, Plugin, and Plugin Library
 
-In the OE SDK attestation API described in document
-[Proposal of OE SDK Attestation Public and Plugin API for V0.10 Release](https://github.com/openenclave/openenclave/pull/2949),
+This section explains various terms used in the OE SDK attestation API
+definition and plugin-based design for OE SDK implementation of these APIs:
+* Evidence format, as exposed by the [OE SDK attestation API](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/Attestation_API_Proposal.md).
+* Plugin, as a logical unit with a [well-defined set of entry points](https://github.com/openenclave/openenclave/blob/master/include/openenclave/internal/plugin.h),
+to support generation or verification of evidence identified by an evidence format.
+* Plugin library, for implementation of one or more plugins.
+
+In the proposed [OE SDK attestation API](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/Attestation_API_Proposal.md),
 every evidence format is uniquely identified by a UUID. Enclave and host
 applications can discover formats supported for evidence verification.
 Enclave applications can select a format for evidence generation. For evidence
@@ -145,7 +156,7 @@ header structure.
 
 In the OE SDK attestation plugin design, a plugin is a logical unit that exposes
 a set of API entry points for evidence generation or verification, as defined
-in this [header file](https://github.com/openenclave/openenclave/blob/master/include/openenclave/attestation/plugin.h).
+in this [header file](https://github.com/openenclave/openenclave/blob/master/include/openenclave/internal/plugin.h).
 To some extent, a plugin is analogous to a C++ object, which exposes methods
 for interaction with other entities.
 A plugin can either be an attester plugin or a verifier plugin.
@@ -177,7 +188,7 @@ the same set of SGX attester plugin libraries.
 
 ## Options for Enclave-side Plugin Library Initialization
 
-As described in the latest version (as of March 2020) of the design document
+As described in the design document
 [Attestation: OE SDK Integration with Intel® SGX SDK quote-ex Library for Generation of Evidence in New Formats](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/SGX_QuoteEx_Integration.md),
 enclave-side plugin library initialization of attester plugins can be
 triggered by application enclave call of the OE SDK API
