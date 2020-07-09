@@ -384,9 +384,10 @@ oe_result_t oe_sgx_extract_claims(
     size_t additional_claim = 0;
     sgx_report_data_t report_data;
 
-    // Note: it's valid for custom_claims to point to a non-NULL buffer
+    // Note: some callers can have custom_claims pointing to a non-NULL buffer
     // containing a zero-sized array.
-    if (!format_id || !report_body || !report_body_size)
+    if (!format_id || !report_body || !report_body_size ||
+        (!custom_claims && custom_claims_size))
         OE_RAISE(OE_INVALID_PARAMETER);
 
     // verify the integrity of the custom_claims with hash stored in

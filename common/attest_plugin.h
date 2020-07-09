@@ -22,7 +22,8 @@ OE_EXTERNC_BEGIN
 
 /**
  * Evidence header: the structure that the OE SDK runtime puts on top of
- * evidence data, for format IDs that require it.
+ * evidence data, when oe_get_evidence() is asked to include the format ID
+ * with the evidence.
  */
 typedef struct _oe_attestation_header
 {
