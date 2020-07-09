@@ -346,7 +346,7 @@ oe_result_t oe_sgx_hash_custom_claims(
 {
     oe_result_t result = OE_UNEXPECTED;
     // Default hash for empty string, as described in the literature.
-    static uint8_t sha256_for_empty_string[] = {
+    static const uint8_t sha256_for_empty_string[] = {
         0xe3, 0xb0, 0xc4, 0x42, 0x98, 0xfc, 0x1c, 0x14, 0x9a, 0xfb, 0xf4,
         0xc8, 0x99, 0x6f, 0xb9, 0x24, 0x27, 0xae, 0x41, 0xe4, 0x64, 0x9b,
         0x93, 0x4c, 0xa4, 0x95, 0x99, 0x1b, 0x78, 0x52, 0xb8, 0x55};
@@ -384,6 +384,8 @@ oe_result_t oe_sgx_extract_claims(
     size_t additional_claim = 0;
     sgx_report_data_t report_data;
 
+    // Note: it's valid for custom_claims to point to a non-NULL buffer
+    // containing a zero-sized array.
     if (!format_id || !report_body || !report_body_size)
         OE_RAISE(OE_INVALID_PARAMETER);
 
@@ -396,9 +398,8 @@ oe_result_t oe_sgx_extract_claims(
         custom_claims_size,
         &report_data));
 
-    // There is no "custom_claims" claim if custom_claims
-    // is expected but is empty. Otherwise there is either a "custom_claims"
-    // claim or an SGX report data claim
+    // If provided, custom_claims can only be the OE_CLAIM_CUSTOM_CLAIMS
+    // or OE_CLAIM_SGX_REPORT_DATA types.
     if ((format_type == SGX_FORMAT_TYPE_LOCAL ||
          format_type == SGX_FORMAT_TYPE_REMOTE) &&
         (!custom_claims || !custom_claims_size))

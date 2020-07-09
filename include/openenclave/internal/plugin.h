@@ -100,14 +100,11 @@ struct _oe_attester
      * @param[in] opt_params The optional plugin-specific input parameters.
      * @param[in] opt_params_size The size of opt_params in bytes.
      * @param[out] evidence_buffer An output pointer that will be assigned the
-     * address of the evidence buffer. The output evidence data contains all
-     * the headers (if any) needed. The implementation of oe_get_evidence()
-     * (that calls this entry point) does not perform further wrapping.
+     * address of the evidence buffer.
      * @param[out] evidence_buffer_size A pointer that points to the size of the
      * evidence buffer in bytes.
      * @param[out] endorsements_buffer An output pointer that will be assigned
-     * the address of the endorsements buffer. The output endorsements data
-     * contains all the headers (if any) needed. The implementation of
+     * the address of the endorsements buffer.
      * oe_get_evidence() (that calls this entry point) does not perform further
      * wrapping.
      * @param[out] endorsements_buffer_size A pointer that points to the size of
@@ -266,15 +263,9 @@ struct _oe_verifier
      * @experimental
      *
      * @param[in] context A pointer to the verifier plugin struct.
-     * @param[in] evidence_buffer The evidence buffer. The evidence data
-     * in this buffer contains all headers (if any). The OE SDK framework
-     * implementation of oe_verify_evidence() (that calls this entry point)
-     * does not perform any unwrapping.
+     * @param[in] evidence_buffer The evidence buffer.
      * @param[in] evidence_buffer_size The size of evidence_buffer in bytes.
      * @param[in] endorsements_buffer The endorsements buffer.
-     * The endorsements data in this buffer contains all headers (if any).
-     * The OE SDK framework implementation of oe_verify_evidence()
-     * (that calls this entry point) does not perform any unwrapping.
      * @param[in] endorsements_buffer_size The size of endorsements_buffer in
      * bytes.
      * @param[in] policies A list of policies to use.
