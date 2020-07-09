@@ -628,9 +628,9 @@ an attestation header when its `wrap_with_header` parameter is set to `true`.
 
 | Format ID | Evidence structure  |
 | -- | - |
-| `OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION` | `oe_report_header || SGX_report(hash) || custom_claims` |
-| `OE_FORMAT_UUID_SGX_ECDSA_P256` | `oe_report_header || SGX_ECDSA_quote(hash) || custom_claims` |
-| `OE_FORMAT_UUID_SGX_ECDSA_P256_REPORT` | `oe_report_header || SGX_ECDSA_quote(custom_claims)` |
+| `OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION` | `oe_report_header \|\| SGX_report(hash) \|\| custom_claims` |
+| `OE_FORMAT_UUID_SGX_ECDSA_P256` | `oe_report_header \|\| SGX_ECDSA_quote(hash) \|\| custom_claims` |
+| `OE_FORMAT_UUID_SGX_ECDSA_P256_REPORT` | `oe_report_header \|\| SGX_ECDSA_quote(custom_claims)` |
 | `OE_FORMAT_UUID_SGX_ECDSA_P256_QUOTE` | `SGX_ECDSA_quote(custom_claims)` |
 | `OE_FORMAT_UUID_SGX_EPID_LINKABLE` | `SGX_EPID_linkable_quote(custom_claims)` |
 | `OE_FORMAT_UUID_SGX_EPID_UNLINKABLE` | `SGX_EPID_unlinkable_quote(custom_claims)` |
