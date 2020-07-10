@@ -194,9 +194,11 @@ Use cases for evidence generation:
   [[Attestation V3 Update]](CustomAttestation_V3.md)
 - Get evidence in an globally unique format, optionally along with a set of
 endorsements.
-  - Function `oe_result_t oe_get_evidence(const oe_uuid_t* format_id, bool wrap_with_header, const void* custom_claims, size_t custom_claims_size, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* evidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`.
-  - The legacy `flags` parameter in the OE SDK V0.9 API release is removed.
-  - A new parameter `wrap_with_header` is added, indicating whether the
+  - Function `oe_result_t oe_get_evidence(const oe_uuid_t* format_id, uint32_t flags, const void* custom_claims, size_t custom_claims_size, const void* opt_params, size_t opt_params_size, uint8_t** evidence_buffer, size_t* evidence_buffer_size, uint8_t** endorsements_buffer, size_t* endorsements_buffer_size)`.
+  - The `flags` parameter in the OE SDK V0.9 API release is redefined
+  to be a bit-wise parameter. In the current version, there is one bit
+  defined:
+    - OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER: if this bit set, the
   evidence and endorsements will be wrapped with an attestation header
   containing the format ID.
   - The optional custom claims are input in a flat buffer. There is no

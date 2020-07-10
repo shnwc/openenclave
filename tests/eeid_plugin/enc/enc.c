@@ -63,7 +63,7 @@ static void _test_evidence_success(const oe_uuid_t* format_id)
 
     oe_result_t r = oe_get_evidence(
         format_id,
-        true,
+        OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
         claims,
         claims_length,
         NULL,
@@ -130,7 +130,7 @@ static void _test_get_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &_eeid_uuid,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             NULL,
             0,
             NULL,
@@ -158,7 +158,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &_eeid_uuid,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             NULL,
             0,
             NULL,
@@ -254,7 +254,7 @@ oe_result_t get_eeid_evidence(
     OE_TEST_CODE(
         oe_get_evidence(
             &_eeid_uuid,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             NULL,
             0,
             NULL,

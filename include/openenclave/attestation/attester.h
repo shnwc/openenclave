@@ -25,6 +25,11 @@
 OE_EXTERNC_BEGIN
 
 /**
+ * Bit-wise flags passed to oe_get_evidence() function.
+ */
+#define OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER 0x00000001
+
+/**
  * oe_attester_initialize
  *
  * Initializes the attester environment configured for the platform and
@@ -74,7 +79,9 @@ oe_result_t oe_attester_select_format(
  * @experimental
  *
  * @param[in] format_id The format ID of the evidence to be generated.
- * @param[in] wrap_with_header A flag indicating whether the evidence and
+ * @param[in] flags A bit-wise parameter. Currently there is one bit
+ * defined: OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER. If this bit is set,
+ * the evidence and
  * endorsements will be wrapped with an attestation header containing the
  * format ID.
  * @param[in] custom_claims The optional custom claims buffer.
@@ -97,7 +104,7 @@ oe_result_t oe_attester_select_format(
  */
 oe_result_t oe_get_evidence(
     const oe_uuid_t* format_id,
-    bool wrap_with_header,
+    uint32_t flags,
     const void* custom_claims,
     size_t custom_claims_size,
     const void* optional_parameters,

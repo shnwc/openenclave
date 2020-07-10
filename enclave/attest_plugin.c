@@ -69,7 +69,7 @@ done:
 
 oe_result_t oe_get_evidence(
     const oe_uuid_t* format_id,
-    bool wrap_with_header,
+    uint32_t flags,
     const void* custom_claims,
     size_t custom_claims_size,
     const void* optional_parameters,
@@ -90,6 +90,7 @@ oe_result_t oe_get_evidence(
     size_t total_evidence_size = 0;
     uint8_t* total_endorsements_buf = NULL;
     size_t total_endorsements_size = 0;
+    bool wrap_with_header = (flags & OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER);
 
     if (!format_id || !evidence_buffer || !evidence_buffer_size ||
         (endorsements_buffer && !endorsements_buffer_size) ||

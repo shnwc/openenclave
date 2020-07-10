@@ -63,7 +63,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &selected_format,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             NULL,
             0,
             NULL,
@@ -86,7 +86,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &selected_format,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             NULL,
             0,
             NULL,
@@ -120,7 +120,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &selected_format,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             test_claims,
             TEST_CLAIMS_SIZE,
             NULL,
@@ -166,7 +166,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &_ecdsa_report_uuid,
-            false,
+            0,
             NULL,
             0,
             NULL,
@@ -193,7 +193,7 @@ static void _test_sgx_remote()
     OE_TEST_CODE(
         oe_get_evidence(
             &_ecdsa_quote_uuid,
-            false,
+            0,
             NULL,
             0,
             NULL,
@@ -240,7 +240,7 @@ static void _test_sgx_local()
     OE_TEST(
         oe_get_evidence(
             &selected_format,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             NULL,
             0,
             target,
@@ -260,7 +260,7 @@ static void _test_sgx_local()
     OE_TEST(
         oe_get_evidence(
             &selected_format,
-            true,
+            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
             test_claims,
             TEST_CLAIMS_SIZE,
             target,
