@@ -27,7 +27,7 @@ OE_EXTERNC_BEGIN
 /**
  * Bit-wise flags passed to oe_get_evidence() function.
  */
-#define OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER 0x00000001
+#define OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID 0x00000001
 
 /**
  * oe_attester_initialize
@@ -80,10 +80,9 @@ oe_result_t oe_attester_select_format(
  *
  * @param[in] format_id The format ID of the evidence to be generated.
  * @param[in] flags A bit-wise parameter. Currently there is one bit
- * defined: OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER. If this bit is set,
- * the evidence and
- * endorsements will be wrapped with an attestation header containing the
- * format ID.
+ * defined: OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID. If this bit is set,
+ * the evidence and endorsements will be wrapped with a header containing
+ * the format ID.
  * @param[in] custom_claims The optional custom claims buffer.
  * @param[in] custom_claims_size The number of bytes in the custom claims
  * buffer.

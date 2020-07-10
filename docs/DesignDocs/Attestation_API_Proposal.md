@@ -198,9 +198,9 @@ endorsements.
   - The `flags` parameter in the OE SDK V0.9 API release is redefined
   to be a bit-wise parameter. In the current version, there is one bit
   defined:
-    - OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER: if this bit set, the
-  evidence and endorsements will be wrapped with an attestation header
-  containing the format ID.
+    - OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID: if this bit set, the
+  evidence and endorsements will be wrapped with a header containing the
+  format ID.
   - The optional custom claims are input in a flat buffer. There is no
   restriction in how the caller structures its set of custom claims held
   in the buffer.

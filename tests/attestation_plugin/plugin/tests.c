@@ -126,7 +126,7 @@ static void _test_evidence_success(
     OE_TEST_CODE(
         oe_get_evidence(
             format_id,
-            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
+            OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID,
             NULL,
             0,
             NULL,
@@ -170,7 +170,7 @@ static void _test_get_evidence_fail()
     OE_TEST(
         oe_get_evidence(
             &mock_attester1.base.format_id,
-            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
+            OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID,
             NULL,
             0,
             NULL,
@@ -196,7 +196,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &mock_attester1.base.format_id,
-            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
+            OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID,
             NULL,
             0,
             NULL,
@@ -259,7 +259,7 @@ static void _test_verify_evidence_fail()
     OE_TEST_CODE(
         oe_get_evidence(
             &mock_attester2.base.format_id,
-            OE_EVIDENCE_FLAGS_BIT_WRAP_HEADER,
+            OE_EVIDENCE_FLAGS_EMBED_FORMAT_ID,
             NULL,
             0,
             NULL,
