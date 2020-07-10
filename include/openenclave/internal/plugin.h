@@ -105,8 +105,6 @@ struct _oe_attester
      * evidence buffer in bytes.
      * @param[out] endorsements_buffer An output pointer that will be assigned
      * the address of the endorsements buffer.
-     * oe_get_evidence() (that calls this entry point) does not perform further
-     * wrapping.
      * @param[out] endorsements_buffer_size A pointer that points to the size of
      * the endorsements buffer in bytes.
      * @retval OE_OK on success.
