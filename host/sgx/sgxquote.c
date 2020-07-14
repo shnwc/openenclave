@@ -12,10 +12,9 @@
 #include <openenclave/internal/trace.h>
 #include <sgx_dcap_ql_wrapper.h>
 #include <sgx_quote_3.h>
-#include <string.h>
-#include "../../common/oe_host_stdlib.h"
 #include <stdlib.h>
 #include <string.h>
+#include "../../common/oe_host_stdlib.h"
 #include "../hostthread.h"
 
 #if __has_include(<sgx_uae_quote_ex.h>) && __has_include(<sgx_urts.h>)
@@ -403,8 +402,23 @@ oe_result_t oe_sgx_qe_get_quote(
         if (key_id->base.algorithm_id == SGX_QL_ALG_EPID_LINKABLE ||
             key_id->base.algorithm_id == SGX_QL_ALG_EPID_UNLINKABLE)
         {
-            if (opt_params && opt_params_size == sizeof(key_id->spid))
-                memcpy(updated_key_id.spid, opt_params, opt_params_size);
+            if (opt_params)
+            {
+                if (opt_params_size == sizeof(key_id->spid))
+                    memcpy(updated_key_id.spid, opt_params, opt_params_size);
+                else
+                {
+                    OE_TRACE_INFO(
+                        "EPID requires opt_params to be 16-byte SPID");
+                    OE_RAISE(OE_INVALID_PARAMETER);
+                }
+            }
+        }
+        else // ECDSA
+        {
+            // For EPID, no opt_params is taken.
+            if (opt_params || opt_params_size)
+                OE_RAISE(OE_INVALID_PARAMETER);
         }
 
         status = _quote_ex_library.sgx_get_quote_ex(
@@ -430,8 +444,9 @@ oe_result_t oe_sgx_qe_get_quote(
 
 #else // OE_LINK_SGX_QUOTE_EX
 
-    OE_UNUSED(opt_params);
-    OE_UNUSED(opt_params_size);
+    // For EPID, no opt_params is taken.
+    if (opt_params || opt_params_size)
+        OE_RAISE(OE_INVALID_PARAMETER);
 
 #endif // OE_LINK_SGX_QUOTE_EX
     if (quote_size > OE_MAX_UINT32)
