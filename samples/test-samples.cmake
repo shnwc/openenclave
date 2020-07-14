@@ -1,12 +1,23 @@
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License.
 
-# This script requires the variables SOURCE_DIR, BUILD_DIR, and
+# This script requires the variables SOURCE_DIR, BUILD_DIR,
+# COMPILER_SUPPORTS_SNMALLOC, USE_DEBUG_MALLOC and
 # PREFIX_DIR to be defined:
 #
 #     cmake -DHAS_QUOTE_PROVIDER=ON -DSOURCE_DIR=~/openenclave -DBUILD_DIR=~/openenclave/build -DPREFIX_DIR=/opt/openenclave -P ~/openenclave/samples/test-samples.cmake
 
-set(SAMPLES_LIST helloworld file-encryptor switchless host_verify)
+# Set SAMPLES_LIST so that helloworld becomes the first if BUILD_ENCLAVES=ON.
+if (BUILD_ENCLAVES)
+  set(SAMPLES_LIST helloworld file-encryptor switchless host_verify)
+  # Debug malloc will set allocated memory to a fixed pattern.
+  # Hence do not enable pluggable_allocator test under USE_DEBUG_MALLOC.
+  if (COMPILER_SUPPORTS_SNMALLOC AND NOT USE_DEBUG_MALLOC)
+    list(APPEND SAMPLES_LIST pluggable_allocator)
+  endif ()
+else ()
+  set(SAMPLES_LIST host_verify)
+endif ()
 
 if ($ENV{OE_SIMULATION})
   message(
@@ -21,13 +32,15 @@ else ()
   # This sample can run on SGX, both with and without FLC, meaning
   # they can run even if they weren't built against SGX, because in
   # that cause they directly interface with the AESM service.
-  list(APPEND SAMPLES_LIST data-sealing local_attestation)
+  if (BUILD_ENCLAVES)
+    list(APPEND SAMPLES_LIST data-sealing local_attestation)
 
-  # These tests can only run with SGX-FLC, meaning they were built
-  # against SGX.
-  if (HAS_QUOTE_PROVIDER)
-    list(APPEND SAMPLES_LIST remote_attestation)
-    list(APPEND SAMPLES_LIST attested_tls)
+    # These tests can only run with SGX-FLC, meaning they were built
+    # against SGX.
+    if (HAS_QUOTE_PROVIDER)
+      list(APPEND SAMPLES_LIST remote_attestation)
+      list(APPEND SAMPLES_LIST attested_tls)
+    endif ()
   endif ()
 endif ()
 

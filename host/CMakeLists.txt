@@ -1,11 +1,8 @@
 # Copyright (c) Open Enclave SDK contributors.
 # Licensed under the MIT License.
 
-set(OE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(EDL_DIR ${CMAKE_SOURCE_DIR}/include/openenclave/edl)
-if (OE_SGX)
-  set(SGX_EDL_DIR ${EDL_DIR}/sgx)
-endif ()
+set(OE_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(EDL_DIR ${PROJECT_SOURCE_DIR}/include/openenclave/edl)
 
 ##==============================================================================
 ##
@@ -97,12 +94,12 @@ install(DIRECTORY ${OE_EDL_INCLUDE_DIR}
 ##
 ##==============================================================================
 
-set(SGX_EDL_FILE ${SGX_EDL_DIR}/platform.edl)
+set(SGX_EDL_FILE ${EDL_DIR}/sgx/platform.edl)
 if (OE_SGX AND COMPILE_SYSTEM_EDL)
   add_custom_command(
     OUTPUT platform_u.h platform_u.c platform_args.h
     DEPENDS ${SGX_EDL_FILE} edger8r
-    COMMAND edger8r --search-path ${SGX_EDL_DIR} --untrusted ${SGX_EDL_FILE})
+    COMMAND edger8r --search-path ${OE_INCLUDE_DIR} --untrusted ${SGX_EDL_FILE})
 
   add_custom_target(platform_untrusted_edl DEPENDS platform_u.h platform_u.c
                                                    platform_args.h)
@@ -112,7 +109,7 @@ elseif (OE_SGX)
   add_custom_command(
     OUTPUT platform_u.h platform_args.h
     DEPENDS ${SGX_EDL_FILE} edger8r
-    COMMAND edger8r --header-only --search-path ${SGX_EDL_DIR} --untrusted
+    COMMAND edger8r --header-only --search-path ${OE_INCLUDE_DIR} --untrusted
             ${SGX_EDL_FILE})
 
   add_custom_target(platform_untrusted_edl DEPENDS platform_u.h platform_args.h)
@@ -437,12 +434,12 @@ if (UNIX)
   endif ()
 elseif (WIN32)
   target_include_directories(
-    oehost PRIVATE ${CMAKE_SOURCE_DIR}/3rdparty/mbedtls/mbedtls/include)
+    oehost PRIVATE ${PROJECT_SOURCE_DIR}/3rdparty/mbedtls/mbedtls/include)
   # Synchronization library is needed for WaitOnAddress/WakeByAddress functions
   # used by switchless ocalls worker threads.
   target_link_libraries(oehost PRIVATE bcrypt Crypt32 Synchronization)
   target_include_directories(
-    oehostverify PRIVATE ${CMAKE_SOURCE_DIR}/3rdparty/mbedtls/mbedtls/include)
+    oehostverify PRIVATE ${PROJECT_SOURCE_DIR}/3rdparty/mbedtls/mbedtls/include)
   target_link_libraries(oehostverify PRIVATE bcrypt Crypt32)
 
   # TODO: Handle TrustZone on Windows.
@@ -556,7 +553,8 @@ endif ()
 install(
   TARGETS oehost
   EXPORT openenclave-targets
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/openenclave/host)
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/openenclave/host
+          COMPONENT OEHOSTVERIFY)
 
 install(
   TARGETS oehostverify

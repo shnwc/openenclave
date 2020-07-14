@@ -8,8 +8,8 @@
 ##
 ##==============================================================================
 
-set(OE_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
-set(EDL_DIR ${CMAKE_SOURCE_DIR}/include/openenclave/edl)
+set(OE_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/include)
+set(EDL_DIR ${PROJECT_SOURCE_DIR}/include/openenclave/edl)
 set(EDL_FILE ${EDL_DIR}/syscall.edl)
 if (COMPILE_SYSTEM_EDL)
   add_custom_command(
@@ -46,6 +46,7 @@ list(
   ioctl.c
   fcntl.c
   fdtable.c
+  hostcalls.c
   iov.c
   mount.c
   netdb.c
