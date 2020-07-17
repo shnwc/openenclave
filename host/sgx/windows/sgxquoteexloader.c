@@ -3,8 +3,6 @@
 
 #if defined(OE_LINK_SGX_DCAP_QL)
 
-#if __has_include(<sgx_uae_quote_ex.h>) && __has_include(<sgx_urts.h>)
-#define OE_LINK_SGX_QUOTE_EX
 #include <Windows.h>
 #include <openenclave/internal/defs.h>
 #include <openenclave/internal/raise.h>
@@ -13,9 +11,6 @@
 #include <string.h>
 #include "../../../common/oe_host_stdlib.h"
 #include "../sgxquote_ex.h"
-#endif
-
-#ifdef OE_LINK_SGX_QUOTE_EX
 
 static const char* _quote_ex_library_file_name = "libsgx_quote_ex.dll";
 
@@ -47,7 +42,7 @@ static void _unload_quote_ex_library(void)
     }
 }
 
-void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
+void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
 {
     oe_result_t result = OE_UNEXPECTED;
 
@@ -60,7 +55,7 @@ void oe_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
     {
         HMODULE _handle = 0;
         OE_TRACE_INFO(
-            "oe_load_quote_ex_library() %s", _quote_ex_library_file_name);
+            "oe_sgx_load_quote_ex_library() %s", _quote_ex_library_file_name);
         _handle = LoadLibraryEx(_quote_ex_library_file_name, NULL, 0);
 
         if (_handle != 0)
@@ -140,7 +135,5 @@ done:
     if (result != OE_OK)
         _unload_quote_ex_library();
 }
-
-#endif // OE_LINK_SGX_QUOTE_EX
 
 #endif // OE_LINK_SGX_DCAP_QL

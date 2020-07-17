@@ -16,20 +16,14 @@
 #include <string.h>
 #include "../../common/oe_host_stdlib.h"
 #include "../hostthread.h"
-
-#if __has_include(<sgx_uae_quote_ex.h>) && __has_include(<sgx_urts.h>)
-#define OE_LINK_SGX_QUOTE_EX
 #include <sgx_uae_quote_ex.h>
 #include "sgxquote_ex.h"
-#endif
 
 // Check consistency with OE definition.
 OE_STATIC_ASSERT(sizeof(sgx_target_info_t) == 512);
 OE_STATIC_ASSERT(sizeof(sgx_report_t) == 432);
 
 static const oe_uuid_t _ecdsa_p256_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
-
-#ifdef OE_LINK_SGX_QUOTE_EX
 
 OE_STATIC_ASSERT(sizeof(sgx_att_key_id_ext_t) == sizeof(sgx_att_key_id_t));
 
@@ -105,7 +99,6 @@ static void _print_hex_buf_tail(
     oe_free(str);
 }
 
-#endif // OE_LINK_SGX_QUOTE_EX
 static quote3_error_t (*_sgx_qe_get_target_info)(
     sgx_target_info_t* p_qe_target_info);
 
@@ -227,9 +220,7 @@ oe_result_t oe_sgx_qe_get_target_info(
     if (!format_id || !target_info)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-#ifdef OE_LINK_SGX_QUOTE_EX
-
-    if (oe_initialize_quote_ex_library() == OE_OK)
+    if (oe_sgx_initialize_quote_ex_library() == OE_OK)
     {
         sgx_status_t status = SGX_ERROR_UNEXPECTED;
         sgx_att_key_id_ext_t updated_key_id = {{0}};
@@ -284,13 +275,6 @@ oe_result_t oe_sgx_qe_get_target_info(
         goto done;
     }
 
-#else // OE_LINK_SGX_QUOTE_EX
-
-    OE_UNUSED(opt_params);
-    OE_UNUSED(opt_params_size);
-
-#endif // OE_LINK_SGX_QUOTE_EX
-
     _load_sgx_dcap_ql();
     err = _sgx_qe_get_target_info((sgx_target_info_t*)target_info);
 
@@ -315,9 +299,7 @@ oe_result_t oe_sgx_qe_get_quote_size(
     if (!format_id || !quote_size)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-#ifdef OE_LINK_SGX_QUOTE_EX
-
-    if (oe_initialize_quote_ex_library() == OE_OK)
+    if (oe_sgx_initialize_quote_ex_library() == OE_OK)
     {
         sgx_status_t status = SGX_ERROR_UNEXPECTED;
         sgx_att_key_id_ext_t updated_key_id = {{0}};
@@ -351,13 +333,6 @@ oe_result_t oe_sgx_qe_get_quote_size(
         goto done;
     }
 
-#else // OE_LINK_SGX_QUOTE_EX
-
-    OE_UNUSED(opt_params);
-    OE_UNUSED(opt_params_size);
-
-#endif // OE_LINK_SGX_QUOTE_EX
-
     _load_sgx_dcap_ql();
     err = _sgx_qe_get_quote_size(&local_quote_size);
 
@@ -386,9 +361,7 @@ oe_result_t oe_sgx_qe_get_quote(
         quote_size > OE_MAX_UINT32)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-#ifdef OE_LINK_SGX_QUOTE_EX
-
-    if (oe_initialize_quote_ex_library() == OE_OK)
+    if (oe_sgx_initialize_quote_ex_library() == OE_OK)
     {
         sgx_status_t status = SGX_ERROR_UNEXPECTED;
         sgx_att_key_id_ext_t updated_key_id = {{0}};
@@ -442,13 +415,6 @@ oe_result_t oe_sgx_qe_get_quote(
         goto done;
     }
 
-#else // OE_LINK_SGX_QUOTE_EX
-
-    // For EPID, no opt_params is taken.
-    if (opt_params || opt_params_size)
-        OE_RAISE(OE_INVALID_PARAMETER);
-
-#endif // OE_LINK_SGX_QUOTE_EX
     if (quote_size > OE_MAX_UINT32)
         OE_RAISE(OE_INVALID_PARAMETER);
 
@@ -474,9 +440,7 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
     if (!format_ids_size)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-#ifdef OE_LINK_SGX_QUOTE_EX
-
-    if (oe_initialize_quote_ex_library() == OE_OK)
+    if (oe_sgx_initialize_quote_ex_library() == OE_OK)
     {
         size_t count = _quote_ex_library.mapped_key_id_count;
         size_t index = 0;
@@ -517,8 +481,6 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         goto done;
     }
 
-#endif // OE_LINK_SGX_QUOTE_EX
-
     // Case when DCAP is used
     if (!format_ids && *format_ids_size == 0)
     {
@@ -540,8 +502,6 @@ done:
     return result;
 }
 
-#ifdef OE_LINK_SGX_QUOTE_EX
-
 static void _load_quote_ex_library_once(void)
 {
     bool* tmp_mapped = NULL;
@@ -552,7 +512,7 @@ static void _load_quote_ex_library_once(void)
     if (_quote_ex_library.handle && _quote_ex_library.load_result == OE_OK)
         return;
 
-    oe_load_quote_ex_library(&_quote_ex_library);
+    oe_sgx_load_quote_ex_library(&_quote_ex_library);
     if (_quote_ex_library.load_result == OE_OK)
     {
         uint32_t att_key_id_num = 0;
@@ -670,14 +630,12 @@ done:
     return;
 }
 
-oe_result_t oe_initialize_quote_ex_library(void)
+oe_result_t oe_sgx_initialize_quote_ex_library(void)
 {
     static oe_once_type once = OE_H_ONCE_INITIALIZER;
     oe_once(&once, _load_quote_ex_library_once);
 
     return _quote_ex_library.load_result;
 }
-
-#endif // OE_LINK_SGX_QUOTE_EX
 
 #endif // OE_LINK_SGX_DCAP_QL

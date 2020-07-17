@@ -489,21 +489,6 @@ if (OE_SGX)
     endif ()
     # turn on 'OE_LINK_SGX_DCAP_QL' for the preprocessor
     target_compile_definitions(oehost PUBLIC OE_LINK_SGX_DCAP_QL)
-    # If Intel SGX SDK is installed in SGX_SDK_PATH, add it to include path
-    if (NOT SGX_SDK_PATH)
-      set(SGX_SDK_PATH "/opt/intel/sgxsdk")
-    endif ()
-    find_file(
-      SGX_SDK_INSTALLED
-      NAMES "sgx_urts.h"
-      PATHS ${SGX_SDK_PATH}/include
-      NO_DEFAULT_PATH)
-    if (SGX_SDK_INSTALLED)
-      message("-- Looking for Intel SGX SDK - found")
-      target_include_directories(oehost PRIVATE ${SGX_SDK_PATH}/include)
-    else ()
-      message("-- Looking for Intel SGX SDK - not found")
-    endif ()
   endif ()
 endif ()
 
