@@ -1,7 +1,7 @@
 // Copyright (c) Open Enclave SDK contributors.
 // Licensed under the MIT License.
 
-#if defined(OE_LINK_SGX_DCAP_QL)
+#if defined(OE_HAS_SGX_DCAP_QL)
 
 #include <Windows.h>
 #include <openenclave/internal/defs.h>
@@ -136,4 +136,4 @@ done:
         _unload_quote_ex_library();
 }
 
-#endif // OE_LINK_SGX_DCAP_QL
+#endif // OE_HAS_SGX_DCAP_QL

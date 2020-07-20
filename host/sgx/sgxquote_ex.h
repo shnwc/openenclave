@@ -4,7 +4,7 @@
 #ifndef _OE_SGXQUOTE_EX_H
 #define _OE_SGXQUOTE_EX_H
 
-#if defined(OE_LINK_SGX_DCAP_QL)
+#if defined(OE_HAS_SGX_DCAP_QL)
 
 #include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
@@ -103,6 +103,6 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library);
 
 OE_EXTERNC_END
 
-#endif // OE_LINK_SGX_DCAP_QL
+#endif // OE_HAS_SGX_DCAP_QL
 
 #endif // _OE_SGXQUOTE_EX_H
