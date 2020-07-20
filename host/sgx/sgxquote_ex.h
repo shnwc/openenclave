@@ -4,8 +4,6 @@
 #ifndef _OE_SGXQUOTE_EX_H
 #define _OE_SGXQUOTE_EX_H
 
-#if defined(OE_HAS_SGX_DCAP_QL)
-
 #include <openenclave/bits/evidence.h>
 #include <openenclave/bits/result.h>
 #include <openenclave/bits/types.h>
@@ -102,7 +100,5 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library);
 #define SGX_GET_SUPPORTED_ATT_KEY_IDS_NAME "sgx_get_supported_att_key_ids"
 
 OE_EXTERNC_END
-
-#endif // OE_HAS_SGX_DCAP_QL
 
 #endif // _OE_SGXQUOTE_EX_H

@@ -271,7 +271,8 @@ if (OE_SGX)
     sgx/sgxquote.c
     sgx/sgxsign.c
     sgx/sgxtypes.c
-    sgx/switchless.c)
+    sgx/switchless.c
+    sgx/tests.c)
 
   # OS specific as well.
   if (UNIX)
@@ -487,8 +488,6 @@ if (OE_SGX)
     if (WIN32)
       target_include_directories(oehost PRIVATE ${INCPATHS})
     endif ()
-    # turn on 'OE_HAS_SGX_DCAP_QL' for the preprocessor
-    target_compile_definitions(oehost PUBLIC OE_HAS_SGX_DCAP_QL)
   endif ()
 endif ()
 

@@ -1,6 +1,5 @@
 // Copyright (c) Open Enclave SDK contributors.
 // Licensed under the MIT License.
-#if defined(OE_HAS_SGX_DCAP_QL)
 
 #include "sgxquote.h"
 #include <openenclave/attestation/sgx/evidence.h>
@@ -12,11 +11,11 @@
 #include <openenclave/internal/trace.h>
 #include <sgx_ql_lib_common.h>
 #include <sgx_quote_3.h>
+#include <sgx_uae_quote_ex.h>
 #include <stdlib.h>
 #include <string.h>
 #include "../../common/oe_host_stdlib.h"
 #include "../hostthread.h"
-#include <sgx_uae_quote_ex.h>
 #include "sgxquote_ex.h"
 
 // Check consistency with OE definition.
@@ -637,5 +636,3 @@ oe_result_t oe_sgx_initialize_quote_ex_library(void)
 
     return _quote_ex_library.load_result;
 }
-
-#endif // OE_HAS_SGX_DCAP_QL
