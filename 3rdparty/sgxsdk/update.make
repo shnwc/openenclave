@@ -12,6 +12,7 @@ all: update-sgxsdk-headers
 update-sgxsdk-headers:
 	rm -rf include
 	mkdir -p include
+	( cd include; wget https://raw.githubusercontent.com/intel/linux-sgx/$(SDK_VERSION)/common/inc/sgx_uae_quote_ex.h )
 	( cd include; wget https://raw.githubusercontent.com/intel/linux-sgx/$(SDK_VERSION)/common/inc/sgx_defs.h )
 	( cd include; wget https://raw.githubusercontent.com/intel/linux-sgx/$(SDK_VERSION)/common/inc/sgx_error.h )
 	( cd include; wget https://raw.githubusercontent.com/intel/linux-sgx/$(SDK_VERSION)/common/inc/sgx_urts.h )
