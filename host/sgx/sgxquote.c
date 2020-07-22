@@ -54,50 +54,6 @@ static sgx_att_key_id_ext_t* _format_id_to_key_id(const oe_uuid_t* format_id)
     return NULL;
 }
 
-static void _print_hex_buf_tail(
-    const char* title,
-    const uint8_t* buf,
-    size_t size,
-    size_t tail)
-{
-    const int max_size = 64;
-    size_t offset = 0;
-    char* str = NULL;
-
-    // Adjust for printing only the tail
-    if (tail && size > tail)
-    {
-        offset = size - tail;
-        size = tail;
-    }
-
-    str = (char*)oe_malloc(max_size * 2 + 1);
-    if (!str)
-    {
-        OE_TRACE_ERROR("Out of memory for _print_hex_buf()");
-        return;
-    }
-
-    if (offset)
-        OE_TRACE_INFO(
-            "%s[%d ->tail %d]:", title, (int)(size + offset), (int)size);
-    else
-        OE_TRACE_INFO("%s[%d]:", title, (int)size);
-
-    while (size > 0)
-    {
-        size_t seg_size = size;
-        if (seg_size > max_size)
-            seg_size = max_size;
-        oe_hex_string(str, seg_size * 2 + 1, buf + offset, seg_size);
-        str[seg_size * 2] = '\0';
-        OE_TRACE_INFO("%s\n", str);
-        size -= seg_size;
-        offset += seg_size;
-    }
-    oe_free(str);
-}
-
 static quote3_error_t (*_sgx_qe_get_target_info)(
     sgx_target_info_t* p_qe_target_info);
 
@@ -469,12 +425,6 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         *format_ids_size = sizeof(oe_uuid_t) * count;
 
         OE_TRACE_INFO("quote_ex got %lu format IDs\n", count);
-        _print_hex_buf_tail("format_ids: ", format_ids, *format_ids_size, 0);
-        _print_hex_buf_tail(
-            "_quote_ex_library.uuid: ",
-            (uint8_t*)_quote_ex_library.uuid,
-            *format_ids_size,
-            0);
 
         result = OE_OK;
         goto done;
