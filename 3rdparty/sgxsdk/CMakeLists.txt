@@ -2,5 +2,7 @@
 # Licensed under the MIT License.
 
 if (OE_SGX)
-  target_include_directories(oehost PRIVATE ${PROJECT_SOURCE_DIR}/3rdparty/sgxsdk/include)
+  # This 3rdpary directory only contains header files for compilation of
+  # SGX-specific host-side code.
+  # There is no new artifacts (e.g. new targets) to be added.
 endif ()

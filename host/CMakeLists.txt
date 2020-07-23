@@ -371,6 +371,11 @@ add_library(oehostverify STATIC ${PLATFORM_HOST_ONLY_SRC})
 target_link_libraries(oehostverify PUBLIC oe_includes)
 target_link_libraries(oehost PUBLIC oe_includes)
 
+if (OE_SGX)
+  target_include_directories(
+    oehost PRIVATE ${PROJECT_SOURCE_DIR}/3rdparty/sgxsdk/include)
+endif ()
+
 if (WIN32)
   target_link_libraries(oehost PUBLIC ws2_32 shlwapi)
 endif ()
