@@ -51,22 +51,22 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
 
     if (library->handle == 0)
     {
-        void* _handle = 0;
+        void* handle = 0;
         OE_TRACE_INFO(
             "oe_sgx_load_quote_ex_library() %s\n", _quote_ex_library_file_name);
-        _handle = dlopen(_quote_ex_library_file_name, RTLD_LAZY | RTLD_LOCAL);
+        handle = dlopen(_quote_ex_library_file_name, RTLD_LAZY | RTLD_LOCAL);
 
-        if (_handle != 0)
+        if (handle != 0)
         {
             library->sgx_select_att_key_id =
-                dlsym(_handle, SGX_SELECT_ATT_KEY_ID_NAME);
+                dlsym(handle, SGX_SELECT_ATT_KEY_ID_NAME);
             if (!library->sgx_select_att_key_id)
             {
                 OE_TRACE_ERROR(
                     "sgxquoteexprovider: sgx_select_att_key_id not fuond\n");
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
-            library->sgx_init_quote_ex = dlsym(_handle, SGX_INIT_QUOTE_EX_NAME);
+            library->sgx_init_quote_ex = dlsym(handle, SGX_INIT_QUOTE_EX_NAME);
             if (!library->sgx_init_quote_ex)
             {
                 OE_TRACE_ERROR(
@@ -74,14 +74,14 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
             library->sgx_get_quote_size_ex =
-                dlsym(_handle, SGX_GET_QUOTE_SIZE_NAME);
+                dlsym(handle, SGX_GET_QUOTE_SIZE_NAME);
             if (!library->sgx_get_quote_size_ex)
             {
                 OE_TRACE_ERROR(
                     "sgxquoteexprovider: sgx_get_quote_size_ex not fuond\n");
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
-            library->sgx_get_quote_ex = dlsym(_handle, SGX_GET_QUOTE_EX_NAME);
+            library->sgx_get_quote_ex = dlsym(handle, SGX_GET_QUOTE_EX_NAME);
             if (!library->sgx_get_quote_ex)
             {
                 OE_TRACE_ERROR(
@@ -89,7 +89,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
             library->sgx_get_supported_att_key_id_num =
-                dlsym(_handle, SGX_GET_SUPPORTED_ATT_KEY_ID_NUM_NAME);
+                dlsym(handle, SGX_GET_SUPPORTED_ATT_KEY_ID_NUM_NAME);
             if (!library->sgx_get_supported_att_key_id_num)
             {
                 OE_TRACE_ERROR("sgxquoteexprovider: "
@@ -97,7 +97,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
             library->sgx_get_supported_att_key_ids =
-                dlsym(_handle, SGX_GET_SUPPORTED_ATT_KEY_IDS_NAME);
+                dlsym(handle, SGX_GET_SUPPORTED_ATT_KEY_IDS_NAME);
             if (!library->sgx_get_supported_att_key_ids)
             {
                 OE_TRACE_ERROR("sgxquoteexprovider: "
@@ -107,7 +107,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
 
             atexit(_unload_quote_ex_library);
 
-            library->handle = _handle;
+            library->handle = handle;
             result = OE_OK;
         }
         else

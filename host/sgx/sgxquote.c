@@ -319,9 +319,9 @@ oe_result_t oe_sgx_qe_get_target_info(
     {
         sgx_status_t status = SGX_ERROR_UNEXPECTED;
         sgx_att_key_id_ext_t updated_key_id = {{0}};
-        size_t tmp_size = 0;
-        uint8_t* tmp_buffer = NULL;
-        sgx_target_info_t tmp_target_info;
+        size_t local_size = 0;
+        uint8_t* local_buffer = NULL;
+        sgx_target_info_t local_target_info;
 
         sgx_att_key_id_ext_t* key_id = _format_id_to_key_id(format_id);
         if (!key_id)
@@ -338,8 +338,8 @@ oe_result_t oe_sgx_qe_get_target_info(
 
         status = _quote_ex_library.sgx_init_quote_ex(
             (sgx_att_key_id_t*)&updated_key_id,
-            &tmp_target_info,
-            &tmp_size,
+            &local_target_info,
+            &local_size,
             NULL);
 
         if (status != SGX_SUCCESS)
@@ -348,23 +348,24 @@ oe_result_t oe_sgx_qe_get_target_info(
                 "sgx_init_quote_ex(NULL) returned 0x%x\n",
                 status);
 
-        tmp_buffer = (uint8_t*)oe_malloc(tmp_size);
-        OE_TEST(tmp_buffer);
+        local_buffer = (uint8_t*)oe_malloc(local_size);
+        if (!local_buffer)
+            OE_RAISE(OE_OUT_OF_MEMORY);
 
         status = _quote_ex_library.sgx_init_quote_ex(
             (sgx_att_key_id_t*)&updated_key_id,
-            &tmp_target_info,
-            &tmp_size,
-            tmp_buffer);
-        oe_free(tmp_buffer);
+            &local_target_info,
+            &local_size,
+            local_buffer);
+        oe_free(local_buffer);
 
         if (status != SGX_SUCCESS)
             OE_RAISE_MSG(
                 OE_PLATFORM_ERROR,
-                "sgx_init_quote_ex(tmp_buffer) returned 0x%x\n",
+                "sgx_init_quote_ex(local_buffer) returned 0x%x\n",
                 status);
 
-        memcpy(target_info, &tmp_target_info, sizeof(sgx_target_info_t));
+        memcpy(target_info, &local_target_info, sizeof(sgx_target_info_t));
 
         result = OE_OK;
         goto done;
@@ -559,8 +560,6 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
                 sizeof(oe_uuid_t));
             index++;
         }
-
-        OE_TEST(index == count);
 
         *format_ids_size = sizeof(oe_uuid_t) * count;
 

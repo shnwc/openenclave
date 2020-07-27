@@ -51,16 +51,16 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
 
     if (library->handle == 0)
     {
-        HMODULE _handle = 0;
+        HMODULE handle = 0;
         OE_TRACE_INFO(
             "oe_sgx_load_quote_ex_library() %s", _quote_ex_library_file_name);
-        _handle = LoadLibraryEx(_quote_ex_library_file_name, NULL, 0);
+        handle = LoadLibraryEx(_quote_ex_library_file_name, NULL, 0);
 
-        if (_handle != 0)
+        if (handle != 0)
         {
             library->sgx_select_att_key_id =
                 (sgx_select_att_key_id_t)GetProcAddress(
-                    _handle, SGX_SELECT_ATT_KEY_ID_NAME);
+                    handle, SGX_SELECT_ATT_KEY_ID_NAME);
             if (!library->sgx_select_att_key_id)
             {
                 OE_TRACE_ERROR(
@@ -68,7 +68,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
             library->sgx_init_quote_ex = (sgx_init_quote_ex_t)GetProcAddress(
-                _handle, SGX_INIT_QUOTE_EX_NAME);
+                handle, SGX_INIT_QUOTE_EX_NAME);
             if (!library->sgx_init_quote_ex)
             {
                 OE_TRACE_ERROR(
@@ -77,7 +77,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
             }
             library->sgx_get_quote_size_ex =
                 (sgx_get_quote_size_ex_t)GetProcAddress(
-                    _handle, SGX_GET_QUOTE_SIZE_NAME);
+                    handle, SGX_GET_QUOTE_SIZE_NAME);
             if (!library->sgx_get_quote_size_ex)
             {
                 OE_TRACE_ERROR(
@@ -85,7 +85,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
                 OE_RAISE(OE_PLATFORM_ERROR);
             }
             library->sgx_get_quote_ex = (sgx_get_quote_ex_t)GetProcAddress(
-                _handle, SGX_GET_QUOTE_EX_NAME);
+                handle, SGX_GET_QUOTE_EX_NAME);
             if (!library->sgx_get_quote_ex)
             {
                 OE_TRACE_ERROR(
@@ -94,7 +94,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
             }
             library->sgx_get_supported_att_key_id_num =
                 (sgx_get_supported_att_key_id_num_t)GetProcAddress(
-                    _handle, SGX_GET_SUPPORTED_ATT_KEY_ID_NUM_NAME);
+                    handle, SGX_GET_SUPPORTED_ATT_KEY_ID_NUM_NAME);
             if (!library->sgx_get_supported_att_key_id_num)
             {
                 OE_TRACE_ERROR("sgxquoteexprovider: "
@@ -103,7 +103,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
             }
             library->sgx_get_supported_att_key_ids =
                 (sgx_get_supported_att_key_ids_t)GetProcAddress(
-                    _handle, SGX_GET_SUPPORTED_ATT_KEY_IDS_NAME);
+                    handle, SGX_GET_SUPPORTED_ATT_KEY_IDS_NAME);
             if (!library->sgx_get_supported_att_key_ids)
             {
                 OE_TRACE_ERROR("sgxquoteexprovider: "
@@ -113,7 +113,7 @@ void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library)
 
             atexit(_unload_quote_ex_library);
 
-            library->handle = _handle;
+            library->handle = handle;
             result = OE_OK;
         }
         else
