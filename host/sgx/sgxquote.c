@@ -165,9 +165,9 @@ static bool _load_sgx_dcap_ql(void)
 
 static void _load_quote_ex_library_once(void)
 {
-    bool* tmp_mapped = NULL;
-    oe_uuid_t* tmp_uuid = NULL;
-    sgx_att_key_id_ext_t* tmp_key_id = NULL;
+    bool* local_mapped = NULL;
+    oe_uuid_t* local_uuid = NULL;
+    sgx_att_key_id_ext_t* local_key_id = NULL;
     oe_result_t result = OE_UNEXPECTED;
 
     if (_quote_ex_library.handle && _quote_ex_library.load_result == OE_OK)
@@ -191,16 +191,16 @@ static void _load_quote_ex_library_once(void)
             OE_RAISE(OE_QUOTE_PROVIDER_CALL_ERROR);
         }
 
-        tmp_mapped = (bool*)oe_malloc(att_key_id_num * sizeof(bool));
-        tmp_uuid = (oe_uuid_t*)oe_malloc(att_key_id_num * sizeof(oe_uuid_t));
-        tmp_key_id = (sgx_att_key_id_ext_t*)oe_malloc(
+        local_mapped = (bool*)oe_malloc(att_key_id_num * sizeof(bool));
+        local_uuid = (oe_uuid_t*)oe_malloc(att_key_id_num * sizeof(oe_uuid_t));
+        local_key_id = (sgx_att_key_id_ext_t*)oe_malloc(
             att_key_id_num * sizeof(sgx_att_key_id_ext_t));
 
-        if (!tmp_mapped || !tmp_uuid || !tmp_key_id)
+        if (!local_mapped || !local_uuid || !local_key_id)
             OE_RAISE(OE_OUT_OF_MEMORY);
 
         status = _quote_ex_library.sgx_get_supported_att_key_ids(
-            tmp_key_id, att_key_id_num);
+            local_key_id, att_key_id_num);
         if (status != SGX_SUCCESS)
             OE_RAISE_MSG(
                 OE_PLATFORM_ERROR,
@@ -210,7 +210,7 @@ static void _load_quote_ex_library_once(void)
 
         for (uint32_t i = 0; i < att_key_id_num; i++)
         {
-            sgx_att_key_id_ext_t* key = tmp_key_id + i;
+            sgx_att_key_id_ext_t* key = local_key_id + i;
             const oe_uuid_t* uuid = NULL;
 
             OE_TRACE_INFO("algorithm_id=%d", key->base.algorithm_id);
@@ -219,43 +219,43 @@ static void _load_quote_ex_library_once(void)
             {
                 case SGX_QL_ALG_EPID_UNLINKABLE:
                     uuid = &_epid_unlinkable_uuid;
-                    tmp_mapped[i] = true;
+                    local_mapped[i] = true;
                     mapped_key_id_count++;
                     break;
                 case SGX_QL_ALG_EPID_LINKABLE:
                     uuid = &_epid_linkable_uuid;
-                    tmp_mapped[i] = true;
+                    local_mapped[i] = true;
                     mapped_key_id_count++;
                     break;
                 case SGX_QL_ALG_ECDSA_P256:
                     uuid = &_ecdsa_p256_uuid;
-                    tmp_mapped[i] = true;
+                    local_mapped[i] = true;
                     mapped_key_id_count++;
                     break;
                 case SGX_QL_ALG_ECDSA_P384:
                     uuid = &_ecdsa_p384_uuid;
-                    tmp_mapped[i] = true;
+                    local_mapped[i] = true;
                     mapped_key_id_count++;
                     break;
                 default:
                     uuid = &_unknown_uuid;
-                    tmp_mapped[i] = false;
+                    local_mapped[i] = false;
                     OE_TRACE_ERROR(
                         "algorithm_id=%d maps to no uuid",
                         key->base.algorithm_id);
                     break;
             }
-            memcpy(tmp_uuid + i, uuid, sizeof(oe_uuid_t));
+            memcpy(local_uuid + i, uuid, sizeof(oe_uuid_t));
         }
 
         _quote_ex_library.key_id_count = att_key_id_num;
         _quote_ex_library.mapped_key_id_count = mapped_key_id_count;
-        _quote_ex_library.mapped = tmp_mapped;
-        _quote_ex_library.uuid = tmp_uuid;
-        _quote_ex_library.sgx_key_id = tmp_key_id;
-        tmp_mapped = NULL;
-        tmp_uuid = NULL;
-        tmp_key_id = NULL;
+        _quote_ex_library.mapped = local_mapped;
+        _quote_ex_library.uuid = local_uuid;
+        _quote_ex_library.sgx_key_id = local_key_id;
+        local_mapped = NULL;
+        local_uuid = NULL;
+        local_key_id = NULL;
 
         OE_TRACE_INFO(
             "key_id_count=%lu mapped=%lu\n",
@@ -266,20 +266,20 @@ static void _load_quote_ex_library_once(void)
     }
 
 done:
-    if (tmp_mapped)
+    if (local_mapped)
     {
-        oe_free(tmp_mapped);
-        tmp_mapped = NULL;
+        oe_free(local_mapped);
+        local_mapped = NULL;
     }
-    if (tmp_uuid)
+    if (local_uuid)
     {
-        oe_free(tmp_uuid);
-        tmp_uuid = NULL;
+        oe_free(local_uuid);
+        local_uuid = NULL;
     }
-    if (tmp_key_id)
+    if (local_key_id)
     {
-        oe_free(tmp_key_id);
-        tmp_key_id = NULL;
+        oe_free(local_key_id);
+        local_key_id = NULL;
     }
     if (_quote_ex_library.load_result == OE_OK)
         _quote_ex_library.load_result = result;

@@ -88,6 +88,9 @@ typedef struct _oe_sgx_quote_ex_library_t
     sgx_att_key_id_ext_t* sgx_key_id;
 } oe_sgx_quote_ex_library_t;
 
+// This function requires platform-specific implementation.
+// It is intended to be invoked only once in sgxquote.c,
+// for library initialization
 void oe_sgx_load_quote_ex_library(oe_sgx_quote_ex_library_t* library);
 
 #define SGX_SELECT_ATT_KEY_ID_NAME "sgx_select_att_key_id"
