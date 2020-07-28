@@ -13,7 +13,6 @@ add_subdirectory(libcxxrt)
 add_subdirectory(libunwind)
 add_subdirectory(musl)
 add_subdirectory(mbedtls)
-add_subdirectory(sgxsdk)
 
 if (OE_SGX AND COMPILER_SUPPORTS_SNMALLOC)
   # snmalloc is most useful in multi-threaded enclaves. Currently, only
