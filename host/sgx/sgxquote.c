@@ -294,6 +294,8 @@ done:
 // For choosing between the DCAP library and the quote-ex library for quote
 // generation: the quote-ex library will be used if it can be loaded
 // and initialized successfully, otherwise the DCAP library is used.
+// Please refer to the design document SGX_QuoteEx_Integration.md for more
+// information on how the quote-ex library is integrated.
 
 static bool _use_quote_ex_library(void)
 {

@@ -229,7 +229,7 @@ static oe_result_t _get_evidence(
             oe_result_str(result));
 
         // Get the endorsements from the report if needed.
-        // No support of endorsements for  EPID quotes
+        // No support of endorsements for EPID quotes
         if (endorsements_buffer && !is_epid_quote)
         {
             oe_report_header_t* header = (oe_report_header_t*)report;
