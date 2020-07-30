@@ -307,8 +307,10 @@ done:
 }
 
 // For choosing between the DCAP library and the quote-ex library for quote
-// generation: the quote-ex library will be used if it can be loaded
-// and initialized successfully, otherwise the DCAP library is used.
+// generation: the DCAP library is used if it can be loaded and is configured
+// to do in-process quote generation. Otherwise, if the DCAP library can't
+// be loaded or it is configured to do out-of-process quote generation,
+// we will try to use the quote-ex library instead.
 // Please refer to the design document SGX_QuoteEx_Integration.md for more
 // information on how the quote-ex library is integrated.
 
@@ -387,16 +389,17 @@ oe_result_t oe_sgx_qe_get_target_info(
         memcpy(target_info, &local_target_info, sizeof(sgx_target_info_t));
 
         result = OE_OK;
-        goto done;
     }
+    else
+    {
+        _load_sgx_dcap_ql();
+        err = _sgx_qe_get_target_info((sgx_target_info_t*)target_info);
 
-    _load_sgx_dcap_ql();
-    err = _sgx_qe_get_target_info((sgx_target_info_t*)target_info);
+        if (err != SGX_QL_SUCCESS)
+            OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
 
-    if (err != SGX_QL_SUCCESS)
-        OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
-
-    result = OE_OK;
+        result = OE_OK;
+    }
 done:
     return result;
 }
@@ -445,17 +448,18 @@ oe_result_t oe_sgx_qe_get_quote_size(
 
         *quote_size = local_quote_size;
         result = OE_OK;
-        goto done;
     }
+    else
+    {
+        _load_sgx_dcap_ql();
+        err = _sgx_qe_get_quote_size(&local_quote_size);
 
-    _load_sgx_dcap_ql();
-    err = _sgx_qe_get_quote_size(&local_quote_size);
+        if (err != SGX_QL_SUCCESS)
+            OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
 
-    if (err != SGX_QL_SUCCESS)
-        OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
-
-    *quote_size = local_quote_size;
-    result = OE_OK;
+        *quote_size = local_quote_size;
+        result = OE_OK;
+    }
 done:
     return result;
 }
@@ -527,21 +531,22 @@ oe_result_t oe_sgx_qe_get_quote(
             key_id->base.algorithm_id);
 
         result = OE_OK;
-        goto done;
     }
+    else
+    {
+        if (quote_size > OE_MAX_UINT32)
+            OE_RAISE(OE_INVALID_PARAMETER);
 
-    if (quote_size > OE_MAX_UINT32)
-        OE_RAISE(OE_INVALID_PARAMETER);
+        local_quote_size = (uint32_t)quote_size;
+        _load_sgx_dcap_ql();
 
-    local_quote_size = (uint32_t)quote_size;
-    _load_sgx_dcap_ql();
+        err = _sgx_qe_get_quote((sgx_report_t*)report, local_quote_size, quote);
+        if (err != SGX_QL_SUCCESS)
+            OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
+        OE_TRACE_INFO("quote_size=%d", local_quote_size);
 
-    err = _sgx_qe_get_quote((sgx_report_t*)report, local_quote_size, quote);
-    if (err != SGX_QL_SUCCESS)
-        OE_RAISE_MSG(OE_PLATFORM_ERROR, "quote3_error_t=0x%x\n", err);
-    OE_TRACE_INFO("quote_size=%d", local_quote_size);
-
-    result = OE_OK;
+        result = OE_OK;
+    }
 done:
     return result;
 }
@@ -585,26 +590,26 @@ oe_result_t oe_sgx_get_supported_attester_format_ids(
         OE_TRACE_INFO("quote_ex got %lu format IDs\n", count);
 
         result = OE_OK;
-        goto done;
     }
-
-    // Case when DCAP is used
-    if (!format_ids && *format_ids_size == 0)
+    else
     {
+        // Case when DCAP is used
+        if (!format_ids && *format_ids_size == 0)
+        {
+            *format_ids_size = sizeof(oe_uuid_t);
+            return OE_BUFFER_TOO_SMALL;
+        }
+        else if (!format_ids || *format_ids_size < sizeof(oe_uuid_t))
+        {
+            *format_ids_size = sizeof(oe_uuid_t);
+            OE_RAISE(OE_BUFFER_TOO_SMALL);
+        }
+        memcpy(format_ids, &_ecdsa_p256_uuid, sizeof(oe_uuid_t));
         *format_ids_size = sizeof(oe_uuid_t);
-        return OE_BUFFER_TOO_SMALL;
-    }
-    else if (!format_ids || *format_ids_size < sizeof(oe_uuid_t))
-    {
-        *format_ids_size = sizeof(oe_uuid_t);
-        OE_RAISE(OE_BUFFER_TOO_SMALL);
-    }
-    memcpy(format_ids, &_ecdsa_p256_uuid, sizeof(oe_uuid_t));
-    *format_ids_size = sizeof(oe_uuid_t);
 
-    OE_TRACE_INFO("DCAP only supports ECDSA_P256\n");
-    result = OE_OK;
-
+        OE_TRACE_INFO("DCAP only supports ECDSA_P256\n");
+        result = OE_OK;
+    }
 done:
     return result;
 }
