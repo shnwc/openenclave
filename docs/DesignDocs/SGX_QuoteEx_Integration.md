@@ -100,7 +100,7 @@ in support of the above two OCALLs, as defined in its
 ### Project Compilation and Linking
 
 As defined in `cmake` configuration file `host/CMakeLists.txt`,
-When the OE SDK V0.9 is built on an SGX platform, the host-side plugin library
+when the OE SDK V0.9 is built on an SGX platform, the host-side plugin library
 code is linked with the DCAP library.
 
 ## Proposed Changes
@@ -137,6 +137,10 @@ function takes an input attestation key ID in its parameter list.
 With DCAP, the quote generation can be done either in-process,
 or out-of-process by working with a background service (called AESM) running
 on the same platform.
+  - Environment variable `SGX_AESM_ADDR` controls the selection.
+    - If `SGX_AESM_ADDR` is defined (regardless of its value), out-of-process
+    quote generation is done.
+    - Otherwise if it is not defined, in-process quote generation is done.
   - On Linux platforms, access control for quote generation is enforced by
   the SGX Linux driver.
     - Every process that hosts a Quoting
@@ -163,14 +167,20 @@ on the same platform.
 With quote-ex, quote generation is always done out-of-process
 by working with an AESM service on the local platform.
 
-An SGX platform can have either the quote-ex library or the DCAP library,
-or both of them installed.
-Installation and configuration of the AESM background service is independent
-of the installation of the two libraries.
+### Priority between the SGX DCAP and quote-ex Libraries
 
-When both libraries and the background services are all installed and configured,
-the quote-ex should library takes precedence, as it supports more evidence
-formats.
+An SGX platform can have either the DCAP library or the quote-ex library,
+or both of them installed.
+
+* When only the DCAP library is installed, it will be used.
+* When only the quote-ex library is installed, it will be used.
+* When both libraries are installed:
+    * If the DCAP library is configured for in-process quote generation, the DCAP
+    library is chosen, so this default behavior for existing applications is
+    preserved.
+    * Otherwise if the DCAP library is configured for out-of-process quote
+    generation, the quote-ex library will be used, as it supports more evidence
+    formats.
 
 #### Options for Host-side Plugin Library Link with the SGX DCAP and quote-ex Libraries
 
@@ -184,11 +194,8 @@ OCALL interface.
 ##### Option 1: Runtime Detection and Loading of the Two Libraries
 
 With this option, the OE SDK host-side plugin library dynamically detects
-the presence of the two libraries and loads them at runtime.
-If the quote-ex library is present, it loads this library and calls into it
-to check if the dependent background service is available.
-If so the quote-ex library is used. Otherwise the DCAP library is loaded
-and used.
+the presence of the two libraries, and choose to use one of them in the
+priority defined in the previous section.
 
 ##### Option 2: Built-time Link with the quote-ex Library
 
@@ -199,25 +206,21 @@ a background service for quote generation.
 If on SGX platforms the OE SDK always installs with the AESM background service
 (as a hard dependency), then it is possible for the host-side plugin library
 to be linked at build-time only with the quote-ex library. With this option,
-the dependency on the DCAP library is dropped.
+the dependency on the DCAP library can be dropped.
 
 ##### Option 3: Link with Both Libraries
 
 To avoid the complication of dynamic library loading and to keep the flexibility
 of using either one of the the libraries, the host-side plugin library can be
-built to be linked to both the DCAP and the quote-ex libraries.
-It first calls into the quote-ex library to check if the dependent background
-service is available.
-If so, the quote-ex library is used, otherwise the DCAP library is used.
+built to be linked to both the DCAP and the quote-ex libraries, and one of
+the two libraries will be used in the priority defined in the previous section.
 
 ##### Option 4: Link with DCAP and Dynamic Load of quote-ex
 
 With this option, the existing OE SDK build and run-time behavior (that depends
 on the DCAP library for in-process quote generation) stays the same.
-But on a platform, if the quote-ex library is installed and can be dynamically
-loaded by the OE SDK SGX attester plugin library, this plugin library will
-dynamically load the quote-ex shared library and use it for generation of ECDSA
-and EPID quotes.
+But on a platform which has the quote-ex library installed, one of
+the two libraries will be used in the priority defined in the previous section.
 
 #### Proposal: Implement Option 1
 

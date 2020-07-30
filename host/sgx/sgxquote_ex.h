@@ -69,6 +69,8 @@ typedef sgx_status_t (*sgx_get_supported_att_key_ids_t)(
 
 typedef struct _oe_sgx_quote_ex_library_t
 {
+    bool use_dcap_library_instead;
+
     void* handle;
     oe_result_t load_result;
 

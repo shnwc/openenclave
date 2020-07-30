@@ -78,6 +78,9 @@ static quote3_error_t (*_sgx_qe_get_quote)(
 
 #define UNLOAD_SGX_DCAP_QL() FreeLibrary((HANDLE)_module)
 
+#define SGX_DCAP_IN_PROCESS_QUOTING() \
+    (GetEnvironmentVariableA("SGX_AESM_ADDR", NULL, 0) == 0)
+
 #else
 
 #include <dlfcn.h>
@@ -93,6 +96,8 @@ static quote3_error_t (*_sgx_qe_get_quote)(
 #define LOOKUP_FUNCTION(fcn) (void*)dlsym(_module, fcn)
 
 #define UNLOAD_SGX_DCAP_QL() dlclose(_module)
+
+#define SGX_DCAP_IN_PROCESS_QUOTING() (getenv("SGX_AESM_ADDR") == NULL)
 
 #endif
 
@@ -142,17 +147,14 @@ static void _load_sgx_dcap_ql_impl(void)
     }
     else
     {
-        OE_TRACE_ERROR("Failed to load %s\n", LIBRARY_NAME);
+        OE_TRACE_WARNING("Failed to load %s\n", LIBRARY_NAME);
         goto done;
     }
 
 done:
     if (result != OE_OK)
     {
-        // It is a catastrophic error if sgx_dcap_ql library cannot be
-        // successfully loaded.
-        OE_TRACE_ERROR("Terminating host application.");
-        abort();
+        OE_TRACE_WARNING("Alternative quoting library will be needed.");
     }
 }
 
@@ -169,6 +171,19 @@ static void _load_quote_ex_library_once(void)
     oe_uuid_t* local_uuid = NULL;
     sgx_att_key_id_ext_t* local_key_id = NULL;
     oe_result_t result = OE_UNEXPECTED;
+
+    if (_load_sgx_dcap_ql() && SGX_DCAP_IN_PROCESS_QUOTING())
+    {
+        OE_TRACE_INFO("DCAP installed and set for in-process quoting.");
+        _quote_ex_library.use_dcap_library_instead = true;
+        return;
+    }
+    else
+    {
+        OE_TRACE_INFO(
+            "DCAP not installed or set for out-of-process, try quote-ex");
+        _quote_ex_library.use_dcap_library_instead = false;
+    }
 
     if (_quote_ex_library.handle && _quote_ex_library.load_result == OE_OK)
         return;
@@ -302,7 +317,9 @@ static bool _use_quote_ex_library(void)
     static oe_once_type once = OE_H_ONCE_INITIALIZER;
     oe_once(&once, _load_quote_ex_library_once);
 
-    return (_quote_ex_library.load_result == OE_OK);
+    return (
+        (!_quote_ex_library.use_dcap_library_instead) &&
+        _quote_ex_library.load_result == OE_OK);
 }
 
 oe_result_t oe_sgx_qe_get_target_info(
