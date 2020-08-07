@@ -206,7 +206,7 @@ a background service for quote generation.
 If on SGX platforms the OE SDK always installs with the AESM background service
 (as a hard dependency), then it is possible for the host-side plugin library
 to be linked at build-time only with the quote-ex library. With this option,
-the dependency on the DCAP library can be dropped.
+the dependency on the DCAP library will be dropped.
 
 ##### Option 3: Link with Both Libraries
 
