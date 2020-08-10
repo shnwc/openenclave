@@ -13,29 +13,37 @@ has complex logic for SGX cert chain verification and Enclave Identity
 verification, including x509 parser, cert revocation checking, JSON and etc. 
 Also it would use some 3rd party codes, such as mbedtls.
 
-As all the verification logics would be built into verifer's enclave,
-which means OE SDK introduce a big TCB for verifier's enclave. Once
-there is a CVE in verification logic, including 3rd party component.
-Verifer needs to upgrade and rebuild their enclave.
-
-Do you see if the current implementation being incomplete? e.g. function
-`_validate_sgx_quote()` in `common/sgx/quote.c` only checks quote version number.
+- Current SGX ECDSA quote verification logic in `common/sgx/quote.c`
+  is NOT a complete implementation, e.g.
+  - Only check quote version number in function `_validate_sgx_quote()`
+    in file `common/sgx/quote.c`
+  - Only allows TCB level `UpToDate`, all other TCB level would be treated as invalid. 
+    But in SGX design, some other TCB levels such as `OutOfData`, `SWConfigNeeded` 
+    should NOT be treated as critical error, it's up to verifier to decide 
+    whehter the platform TCB is valid.
+- In current implementaion, all the quote verification logics would be 
+  built into verifer's enclave, which means OE SDK introduce a big TCB 
+  for verifier's enclave. Once there is a CVE in verification logic, 
+  including 3rd party component. Verifer needs to upgrade and rebuild their enclave.
 
 # User Experience
 
 The proposed extension only changes the internal implementation of the OE SDK
 attestation software stack. It does not impact the
 [OE SDK attestation API](https://github.com/openenclave/openenclave/pull/2949).
+
+TODO: Extend claim info, so user will notice this change
+
+
 If SGX verifier plugin is used, with the integration of SGX QVL, a verifier's
 call to OE SDK API `oe_verify_evidence()` would triggers quote verification by
 invoking Intel® SGX DCAP (QVL) or Quote Verification Enclave (QvE), depending on
 whether the call is from the enclave side or the host side.
 
 Integration of the quote verification library depends on the installation of the
-Intel® SGX DCAP packages (please list the individual packages) and its dependencies,
+Intel® SGX DCAP packages `libsgx-dcap-quote-verify`, `libsgx-ae-qve` and its dependencies,
 as well as proper configuration of the components and their access to
-dependent backend services (which backend service are used? In OE SDK,
-before quote verification, the complete PCK cert chain is already retrieved).
+dependent backend services (e.g. Quote Provider Library and PCCS).
 Details for the DCAP quote verification library installation
 and configuration are outside the scope of this document.
 
@@ -50,7 +58,7 @@ supports the requested evidence format, and invoke the `verify_evidence()` or `v
 entry point of the selected plugin.
 
 The SGX ECDSA-p256 verifier plugin is implemented in code file
-`enclave/sgx/report.c`, `common/sgx/verifier.c` and relevant enclave-side code file 
+`enclave/sgx/report.c`, `common/sgx/verifier.c` and relevant code file 
 `common/sgx/quote.c`. The same source tree implements both the enclave-side and
 host-side verifier plugins.
 
@@ -62,7 +70,7 @@ Based on design doc [Remote Attestation Collaterals](https://github.com/openencl
 only discuss scenario 2 here. But in both scenarios, the same function `oe_verify_quote_with_sgx_endorsements()`
 is invoked for quote verificaiton.
 
-The enclave-side and host-side plugin library implements in function `_verify_evidence()`, for SGX ECDSA-p256
+The enclave-side and host-side plugin librariese implement in function `_verify_evidence()`, for SGX ECDSA-p256
 quote verification, 3 functions are called in this function.
 - `oe_get_sgx_endorsements()` and `oe_parse_sgx_endorsements()`
   - Get relevant endorsements, including SGX PCK cert CRL, TCB info, QE identity and etc
@@ -189,6 +197,7 @@ The proposal is to start by implementing option 2, the reasons are:
   extension field to add some items for multi-package platform
 - If we keep using existing OE SDK implementaion, it means OE SDK need to update once Intel change
   verification collateral defintion
+- Retrieving and parsing endorsements logic would increase verifier's TCB 
 
 So with option 2, OE SDK don't need to maintain the complex SGX collateral retrieving & parsing logic,
 also OE SDK don't care about SGX collateral change, because DCAP QVL will handle it. 
@@ -198,19 +207,20 @@ also OE SDK don't care about SGX collateral change, because DCAP QVL will handle
 In order to align with current implementaion of DCAP quote-ex, we will update
 OE SDK host-side plugin library to dynamically detects the presence of QVL library 
 and loads it at runtime. If the QVL library is present, it loads this library and 
-calls into quote verificaton internal logic. Question: what if the library is missing?
+calls into quote verificaton internal logic. Otherwise, plug-in should return 
+corresponding error.
 
 
 ### Add host-side verifier plugin library for OCALLs to support enclave-side SGX ECDSA-p256 quote verification
-As quote verification will be done by DCAP QVL/QvE, for enclave-side plugin, we need to implement OCALLs\
-in host-side verifier plugin library to invoke QvE.
+As quote verification will be done by DCAP QVL/QvE, for enclave-side plugin, we need to implement OCALLs
+in host-side verifier plugin library to invoke QVL/QvE.
 
 In this proposal, we suggest to add one OCALL in `edl/sgx/attestation.edl` as below.
 The OCALL is used for passing quote buffer and expiration time flag to host side.
 All other relevant logic would be implemented in host side, file `host/sgx/ocalls.c`
-and `host/sgx/quote.c`
+and `host/sgx/quote.c`.
  
-Note that though only ECDSA-p256 quote is supported by now, the OCALL will keep `format_id`
+Note that only ECDSA-p256 quote is supported by now, but the OCALL will keep `format_id`
 and `opt_params` for forward compatibility.
 
 ```C
@@ -230,27 +240,26 @@ oe_result_t oe_verify_quote_ocall(
     [out] size_t* p_supplemental_data_size_out);
 ```
 
-#### Alternatives
-Quote verification can be done in host side, only QvE Identity verification need to be 
-done in enclave side, so we don't need above OCALL
-- Finish quote verification in host side, verifier can only provide quote buffer, expiration
-  check time and verifier enclave's target info
-- Add another ECALL function, pass all the QvE returned results, then verify QvE report and 
-  identity inside enclave, with new added `QvE report and identity verfication` API.
+### Update implementation of existing plugin API `_verify_evidence()`, `_verify_report()` and `oe_verify_quote_with_sgx_endorsements()`
+- Update API name from `oe_verify_quote_with_sgx_endorsements()` to `oe_sgx_verify_quote()`, also update implementation as below
+  - Input parameter doesn't change
+  - Construct structure `sgx_ql_qe_report_info_t` as below, `nonce` and `app_enclave_target_info` are input, qe_report is an output of QvE 
+  ```C
+  typedef struct _sgx_ql_qe_report_info_t {
+    sgx_quote_nonce_t nonce;
+    sgx_target_info_t app_enclave_target_info;
+    sgx_report_t qe_report;
+  }sgx_ql_qe_report_info_t;
+  ```
+  - Call OCALL function `oe_verify_quote_ocall()` to call host-side plugin to verify SGX quote
+  - With all the QvE return values, call new added API `oe_verify_qve_report_and_identity()` (describe in below section) 
+    to verify QvE report and identity
+- In API `_verify_evidence()`, remove function call `oe_get_sgx_endorsements()`, and only call `oe_parse_sgx_endorsements()` 
+  user provide endorsement buffer
+- In API `_verify_report()` and relevant internal APIs, such as `oe_verify_report_internal()` and `oe_verify_sgx_quote()`,
+  remove logic about loading Quote Provider library and retrieving endorsements, replace function call `oe_verify_quote_with_sgx_endorsements()`
+  with updated `oe_sgx_verify_quote()`
 
-TODO: Need to investigate how to prevent quote into enclave in verifier's plugin
-
-* For this alternative, do you mean that the quote will never be read into the application enclave?
-That will require change in API model. So I think we can eliminate this alternative.*
-
-### Update implementation of existing plugin API `oe_verify_evidence` and `oe_verify_quote_with_sgx_endorsements`
-
-TODO: The proposal depends on above decision
-  - If we can quote verification OCALL, then we just need to remove the logic about retrieving 
-    endorsments, then call OCALL to verify quote. At last, call new added `QvE report and identity verfication` API
-  - If all quote verification process done in host-side, then host side can choose to use
-    trusted QvE vs untrusted QVL verification. For QvE verifcation, host-side need to ECALL to get
-    target info first, then call all new added `QvE report and identity verfication` API
 
 ### Add function in enclave-side plugin for Intel® QvE Identity verification
 
@@ -262,6 +271,7 @@ Intel® SGX SDK provides a library named `sgx_dcap_tvl` to help verifier to veri
 This library uses hardcode QvE identity value, because:
 - Get rid of x509 and JSON parser from verifier's TCB
 - Most of QvE's identity would NOT change
+   
 The only identity info may change frequently is QvE's ISV SVN, so verifier to provide 
 a SVN number as threshold, only when the current QvE's ISV SVN is larger or equal to the 
 threshold, verifier can trust the QvE verification result.
@@ -294,29 +304,65 @@ Rough process of this API:
   - Check Misc Select, Attribute and ProdID are equal with hardcode values, Misc select and Attribute need to apply Mask before compare
   - Check Report.ISVSVN >= Hardcode ISVSVN
   
-Note: this flow can be implemented in the enclave-side '_verify_evidence()` and _verify_report()` functions.
+### Extend `claim` definition to add QVL/QvE returned supplemental data
+If verifier needs to provide a different quote verification policy beyond the policy enforced 
+by the sgx_qv_verify_quote() API, the verifier can request the sgx_qv_verify_quote() API to 
+return supplemental data. The detailed definition are described in above `Background` section.
 
-### Extend `claims` definition for more supplemental data
-TODO
+The proposal here is to extend known `claim` definition to add QVL/QvE returned supplemental data
 
-### Add more error code in `oe_result_t` to indicate specific quote verification error
-TODO
+Alternative: As some of supplemental data are SGX specific, maybe we can add a flag to indicate 
+whether SGX claims are enabled, the supplemental data would only return when the SGX flag is enabled.
+
+### Update `oe_sgx_extract_claims()` to remove SGX endorsement dependency
+As SGX endrosments will be retrieved from SGX DCAP QVL library, so we will try to get QVL/QvE returned supplemental data first,
+then use the returned info to replace current endorsement to fill claims.
+
+### Add more error codes in `oe_result_t` to indicate specific quote verification error
+API `sgx_qv_verify_quote()` will return some terminate and non-terminate errors, list below.
+For non-terminate errors, verifier can check corresponding Advisory ID to decide whether current 
+SGX platform is affected.
+So we suggest to extend `oe_result_t` to add below error codes.
+
+```C
+   SGX_QL_QV_RESULT_CONFIG_NEEDED = SGX_QL_QV_MK_ERROR(0x0001),             ///< The Quote verification passed and the platform is patched to
+                                                                            ///< the latest TCB level but additional configuration of the SGX
+                                                                            ///< platform may be needed
+   SGX_QL_QV_RESULT_OUT_OF_DATE = SGX_QL_QV_MK_ERROR(0x0002),               ///< The Quote is good but TCB level of the platform is out of date.
+                                                                            ///< The platform needs patching to be at the latest TCB level
+   SGX_QL_QV_RESULT_OUT_OF_DATE_CONFIG_NEEDED = SGX_QL_QV_MK_ERROR(0x0003), ///< The Quote is good but the TCB level of the platform is out of
+                                                                            ///< date and additional configuration of the SGX Platform at its
+                                                                            ///< current patching level may be needed. The platform needs
+                                                                            ///< patching to be at the latest TCB level
+   SGX_QL_QV_RESULT_SW_HARDENING_NEEDED = SGX_QL_QV_MK_ERROR(0x0007),       ///< The TCB level of the platform is up to date, but SGX 
+                                                                            ///< SW Hardening is needed
+   SGX_QL_QV_RESULT_CONFIG_AND_SW_HARDENING_NEEDED = SGX_QL_QV_MK_ERROR(0x0008),   ///< The TCB level of the platform is up to date, 
+                                                                                   ///< but additional configuration of the platform at 
+                                                                                   ///< its current patching level may be needed. Moreove, SGX
+                                                                                   ///< SW Hardening is also needed
+
+```
 
 ### Remove repetitive quote verification code in existing enclave-side SGX verifier plugin
-#### In enclave-side verifier plugin file `common/sgx/quote.c`, only keep 2 existing APIs, remove all other APIs in this file
+#### In verifier plugin file `common/sgx/quote.c`, only keep 2 existing APIs, remove all other APIs in this file
 
 - `oe_verify_quote_with_sgx_endorsements()`
   - Updated implementation 
 - `oe_verify_sgx_quote()`
   - Keep backward compatibility
 
-TODO: Need to evaluate whehter we can remove other logics about cert/CRL/JSON operations, 
-such as `oe_cert_chain_read_pem` in `enclave/crypto/cert.c`
+#### Remove other utility functions
+- `common/sgx/collateral.h & .c`
+- `common/sgx/endosements.h & .c`, only keep `oe_parse_sgx_endorsements()` as user may provide endorsements
+- `common/sgx/qeidentity.h & .c`
+- `common/sgx/sgxcertextension.c`
+- `common/sgx/tcbinfo.h & .c`
+- `common/sgx/tlsverifier.c`
 
-#### Remove SGX endorsment logic in file `common/sgx/endorsements.c`
-TODO: Need to evaluate whether we can remove logic related to `oe_get_quote_verification_collateral_ocall`,
-as we can utilize DCAP QVL to get corresponding endorsments.
+#### Clean header files to remove some unused interal APIs and macros
+
 
 # Authors
 
 - Hongyan Jiang (@hyjiang)
+- Shanwei Cen (@shnwc)
