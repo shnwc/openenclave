@@ -8,22 +8,22 @@ evidence verification in ECDSA-p256 formats.
 # Motivation
 
 Existing OE SDK has it's own logic for SGX ECDSA quote verification.
-As implemented in code file `common/sgx/quote.c`, verification code 
-has complex logic for SGX cert chain verification and Enclave Identity 
-verification, including x509 parser, cert revocation checking, JSON and etc. 
+As implemented in code file `common/sgx/quote.c`, verification code
+has complex logic for SGX cert chain verification and Enclave Identity
+verification, including x509 parser, cert revocation checking, JSON and etc.
 Also it would use some 3rd party codes, such as mbedtls.
 
 - Current SGX ECDSA quote verification logic in `common/sgx/quote.c`
   is NOT a complete implementation, e.g.
   - Only check quote version number in function `_validate_sgx_quote()`
     in file `common/sgx/quote.c`
-  - Only allows TCB level `UpToDate`, all other TCB level would be treated as invalid. 
-    But in SGX design, some other TCB levels such as `OutOfData`, `SWConfigNeeded` 
-    should NOT be treated as critical error, it's up to verifier to decide 
+  - Only allows TCB level `UpToDate`, all other TCB level would be treated as invalid.
+    But in SGX design, some other TCB levels such as `OutOfData`, `SWConfigNeeded`
+    should NOT be treated as critical error, it's up to verifier to decide
     whehter the platform TCB is valid.
-- In current implementaion, all the quote verification logics would be 
-  built into verifer's enclave, which means OE SDK introduce a big TCB 
-  for verifier's enclave. Once there is a CVE in verification logic, 
+- In current implementaion, all the quote verification logics would be
+  built into verifer's enclave, which means OE SDK introduce a big TCB
+  for verifier's enclave. Once there is a CVE in verification logic,
   including 3rd party component. Verifer needs to upgrade and rebuild their enclave.
 
 # User Experience
@@ -31,8 +31,6 @@ Also it would use some 3rd party codes, such as mbedtls.
 The proposed extension only changes the internal implementation of the OE SDK
 attestation software stack. It does not impact the
 [OE SDK attestation API](https://github.com/openenclave/openenclave/pull/2949).
-
-TODO: Extend claim info, so user will notice this change
 
 
 If SGX verifier plugin is used, with the integration of SGX QVL, a verifier's
@@ -58,7 +56,7 @@ supports the requested evidence format, and invoke the `verify_evidence()` or `v
 entry point of the selected plugin.
 
 The SGX ECDSA-p256 verifier plugin is implemented in code file
-`enclave/sgx/report.c`, `common/sgx/verifier.c` and relevant code file 
+`enclave/sgx/report.c`, `common/sgx/verifier.c` and relevant code file
 `common/sgx/quote.c`. The same source tree implements both the enclave-side and
 host-side verifier plugins.
 
@@ -66,7 +64,7 @@ There are 2 different scenarios in current SGX ECDSA quote verification:
 - Scenario 1 - Call `oe_verify_report()` to verify SGX remote report (aka SGX quote)
 - Scenario 2 - Call `oe_verify_evidence()` to verify evidence in format `OE_FORMAT_UUID_SGX_ECDSA_P256`.
 
-Based on design doc [Remote Attestation Collaterals](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/RemoteAttestationCollaterals.md), new API `oe_verify_evidence()` will supersede `oe_verify_report()`. So we 
+Based on design doc [Remote Attestation Collaterals](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/RemoteAttestationCollaterals.md), new API `oe_verify_evidence()` will supersede `oe_verify_report()`. So we
 only discuss scenario 2 here. But in both scenarios, the same function `oe_verify_quote_with_sgx_endorsements()`
 is invoked for quote verificaiton.
 
@@ -175,20 +173,20 @@ typedef struct _sgx_ql_qv_supplemental_t
 
 ### Options for retrieving SGX endorsements
 There are two options for the OE SDK plugin library to retreive
-SGX endorsments. 
+SGX endorsments.
 
 #### Option 1: Keep existing implemention in SGX verifier plugin
 In current plugin, if verifier doesn't provide SGX endoresements,
 then it will call API `oe_get_sgx_endorsements()` to parse SGX ECDSA quote body
 to get PCK cert chain first, then call OCALL API `oe_get_quote_verification_collateral_ocall`
-to load Quote Provide Library(QPL) and connect to PCK Cert Caching Sever(PCCS) 
-to get corresponding verification collaterals, including CRL, TCB and QE Identity and etc. 
+to load Quote Provide Library(QPL) and connect to PCK Cert Caching Sever(PCCS)
+to get corresponding verification collaterals, including CRL, TCB and QE Identity and etc.
 
 #### Option 2: Ask DCAP QVL to retrieve endorsements
 If verifier doesn't provide endorsments when calling DCAP QVL API, QVL API will
-try parse quote body to get PCK cert chain, then load Quote Provide Library(QPL) 
+try parse quote body to get PCK cert chain, then load Quote Provide Library(QPL)
 and connect to PCK Cert Caching Sever(PCCS) to get corresponding verification
-collaterals. 
+collaterals.
 
 #### Proposal: Ask DCAP QVL to retrieve endorsements
 The proposal is to start by implementing option 2, the reasons are:
@@ -197,17 +195,17 @@ The proposal is to start by implementing option 2, the reasons are:
   extension field to add some items for multi-package platform
 - If we keep using existing OE SDK implementaion, it means OE SDK need to update once Intel change
   verification collateral defintion
-- Retrieving and parsing endorsements logic would increase verifier's TCB 
+- Retrieving and parsing endorsements logic would increase verifier's TCB
 
 So with option 2, OE SDK don't need to maintain the complex SGX collateral retrieving & parsing logic,
-also OE SDK don't care about SGX collateral change, because DCAP QVL will handle it. 
+also OE SDK don't care about SGX collateral change, because DCAP QVL will handle it.
 
 
 #### Link with the SGX DCAP QVL Library
 In order to align with current implementaion of DCAP quote-ex, we will update
-OE SDK host-side plugin library to dynamically detects the presence of QVL library 
-and loads it at runtime. If the QVL library is present, it loads this library and 
-calls into quote verificaton internal logic. Otherwise, plug-in should return 
+OE SDK host-side plugin library to dynamically detects the presence of QVL library
+and loads it at runtime. If the QVL library is present, it loads this library and
+calls into quote verificaton internal logic. Otherwise, plug-in should return
 corresponding error.
 
 
@@ -219,7 +217,7 @@ In this proposal, we suggest to add one OCALL in `edl/sgx/attestation.edl` as be
 The OCALL is used for passing quote buffer and expiration time flag to host side.
 All other relevant logic would be implemented in host side, file `host/sgx/ocalls.c`
 and `host/sgx/quote.c`.
- 
+
 Note that only ECDSA-p256 quote is supported by now, but the OCALL will keep `format_id`
 and `opt_params` for forward compatibility.
 
@@ -243,7 +241,7 @@ oe_result_t oe_verify_quote_ocall(
 ### Update implementation of existing plugin API `_verify_evidence()`, `_verify_report()` and `oe_verify_quote_with_sgx_endorsements()`
 - Update API name from `oe_verify_quote_with_sgx_endorsements()` to `oe_sgx_verify_quote()`, also update implementation as below
   - Input parameter doesn't change
-  - Construct structure `sgx_ql_qe_report_info_t` as below, `nonce` and `app_enclave_target_info` are input, qe_report is an output of QvE 
+  - Construct structure `sgx_ql_qe_report_info_t` as below, `nonce` and `app_enclave_target_info` are input, qe_report is an output of QvE
   ```C
   typedef struct _sgx_ql_qe_report_info_t {
     sgx_quote_nonce_t nonce;
@@ -252,9 +250,9 @@ oe_result_t oe_verify_quote_ocall(
   }sgx_ql_qe_report_info_t;
   ```
   - Call OCALL function `oe_verify_quote_ocall()` to call host-side plugin to verify SGX quote
-  - With all the QvE return values, call new added API `oe_verify_qve_report_and_identity()` (describe in below section) 
+  - With all the QvE return values, call new added API `oe_verify_qve_report_and_identity()` (describe in below section)
     to verify QvE report and identity
-- In API `_verify_evidence()`, remove function call `oe_get_sgx_endorsements()`, and only call `oe_parse_sgx_endorsements()` 
+- In API `_verify_evidence()`, remove function call `oe_get_sgx_endorsements()`, and only call `oe_parse_sgx_endorsements()`
   user provide endorsement buffer
 - In API `_verify_report()` and relevant internal APIs, such as `oe_verify_report_internal()` and `oe_verify_sgx_quote()`,
   remove logic about loading Quote Provider library and retrieving endorsements, replace function call `oe_verify_quote_with_sgx_endorsements()`
@@ -271,9 +269,9 @@ Intel® SGX SDK provides a library named `sgx_dcap_tvl` to help verifier to veri
 This library uses hardcode QvE identity value, because:
 - Get rid of x509 and JSON parser from verifier's TCB
 - Most of QvE's identity would NOT change
-   
-The only identity info may change frequently is QvE's ISV SVN, so verifier to provide 
-a SVN number as threshold, only when the current QvE's ISV SVN is larger or equal to the 
+
+The only identity info may change frequently is QvE's ISV SVN, so verifier to provide
+a SVN number as threshold, only when the current QvE's ISV SVN is larger or equal to the
 threshold, verifier can trust the QvE verification result.
 
 As OE SDK cannot use Intel® SGX SDK trusted library directly, we need to port this library
@@ -291,7 +289,7 @@ oe_result_t oe_verify_qve_report_and_identity(
         uint32_t supplemental_data_size,
         sgx_isv_svn_t qve_isvsvn_threshold)
 ```
-Note that all the QvE returned data are included in QvE report data to guarantee integrity. 
+Note that all the QvE returned data are included in QvE report data to guarantee integrity.
 ```C
 QvE report_data = SHA256([nonce || quote || expiration_check_date || expiration_status || verification_result || supplemental_data] || 32 - 0x00)
 ```
@@ -303,15 +301,15 @@ Rough process of this API:
   - Check Report.MRSIGNER == Hardcode QvE MRSIGNER
   - Check Misc Select, Attribute and ProdID are equal with hardcode values, Misc select and Attribute need to apply Mask before compare
   - Check Report.ISVSVN >= Hardcode ISVSVN
-  
+
 ### Extend `claim` definition to add QVL/QvE returned supplemental data
-If verifier needs to provide a different quote verification policy beyond the policy enforced 
-by the sgx_qv_verify_quote() API, the verifier can request the sgx_qv_verify_quote() API to 
+If verifier needs to provide a different quote verification policy beyond the policy enforced
+by the sgx_qv_verify_quote() API, the verifier can request the sgx_qv_verify_quote() API to
 return supplemental data. The detailed definition are described in above `Background` section.
 
 The proposal here is to extend known `claim` definition to add QVL/QvE returned supplemental data
 
-Alternative: As some of supplemental data are SGX specific, maybe we can add a flag to indicate 
+Alternative: As some of supplemental data are SGX specific, maybe we can add a flag to indicate
 whether SGX claims are enabled, the supplemental data would only return when the SGX flag is enabled.
 
 ### Update `oe_sgx_extract_claims()` to remove SGX endorsement dependency
@@ -320,26 +318,20 @@ then use the returned info to replace current endorsement to fill claims.
 
 ### Add more error codes in `oe_result_t` to indicate specific quote verification error
 API `sgx_qv_verify_quote()` will return some terminate and non-terminate errors, list below.
-For non-terminate errors, verifier can check corresponding Advisory ID to decide whether current 
+For non-terminate errors, verifier can check corresponding Advisory ID to decide whether current
 SGX platform is affected.
 So we suggest to extend `oe_result_t` to add below error codes.
 
 ```C
-   SGX_QL_QV_RESULT_CONFIG_NEEDED = SGX_QL_QV_MK_ERROR(0x0001),             ///< The Quote verification passed and the platform is patched to
-                                                                            ///< the latest TCB level but additional configuration of the SGX
-                                                                            ///< platform may be needed
-   SGX_QL_QV_RESULT_OUT_OF_DATE = SGX_QL_QV_MK_ERROR(0x0002),               ///< The Quote is good but TCB level of the platform is out of date.
-                                                                            ///< The platform needs patching to be at the latest TCB level
-   SGX_QL_QV_RESULT_OUT_OF_DATE_CONFIG_NEEDED = SGX_QL_QV_MK_ERROR(0x0003), ///< The Quote is good but the TCB level of the platform is out of
-                                                                            ///< date and additional configuration of the SGX Platform at its
-                                                                            ///< current patching level may be needed. The platform needs
-                                                                            ///< patching to be at the latest TCB level
-   SGX_QL_QV_RESULT_SW_HARDENING_NEEDED = SGX_QL_QV_MK_ERROR(0x0007),       ///< The TCB level of the platform is up to date, but SGX 
-                                                                            ///< SW Hardening is needed
-   SGX_QL_QV_RESULT_CONFIG_AND_SW_HARDENING_NEEDED = SGX_QL_QV_MK_ERROR(0x0008),   ///< The TCB level of the platform is up to date, 
-                                                                                   ///< but additional configuration of the platform at 
-                                                                                   ///< its current patching level may be needed. Moreove, SGX
-                                                                                   ///< SW Hardening is also needed
+   OE_SGX_CONFIG_NEEDED  ///< The Quote verification passed and the platform is patched to
+                         ///< the latest TCB level but additional configuration of the SGX platform may be needed
+   OE_SGX_OUT_OF_DATE    ///< The Quote is good but TCB level of the platform is out of date.
+                         ///< date and additional configuration of the SGX Platform at its current patching level
+                         ///< may be needed. The platform needs patching to be at the latest TCB level
+   OE_SGX_SW_HARDENING_NEEDED   ///< The TCB level of the platform is up to date, but SGX SW Hardening is needed
+   OE_SGX_CONFIG_AND_SW_HARDENING_NEEDED    ///< The TCB level of the platform is up to date, but additional
+                                            ///< configuration of the platform at its current patching level
+                                            ///< may be needed. Moreove, SGX SW Hardening is also needed
 
 ```
 
@@ -347,7 +339,7 @@ So we suggest to extend `oe_result_t` to add below error codes.
 #### In verifier plugin file `common/sgx/quote.c`, only keep 2 existing APIs, remove all other APIs in this file
 
 - `oe_verify_quote_with_sgx_endorsements()`
-  - Updated implementation 
+  - Updated implementation
 - `oe_verify_sgx_quote()`
   - Keep backward compatibility
 
