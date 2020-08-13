@@ -25,12 +25,6 @@ typedef struct _oe_sgx_enclave_properties oe_sgx_enclave_properties_t;
 
 typedef struct _oe_elf_segment
 {
-    /* Pointer to segment from ELF file */
-    void* filedata;
-
-    /* Size of this segment in the ELF file */
-    size_t filesz;
-
     /* Size of this segment in memory */
     size_t memsz;
 
@@ -105,7 +99,10 @@ struct _oe_enclave_image
         oe_enclave_t* enclave,
         uint64_t* vaddr);
 
-    oe_result_t (*patch)(oe_enclave_image_t* image, size_t enclave_size);
+    oe_result_t (*sgx_patch)(
+        oe_enclave_image_t* image,
+        oe_sgx_load_context_t* context,
+        size_t enclave_size);
 
     oe_result_t (*sgx_load_enclave_properties)(
         const oe_enclave_image_t* image,

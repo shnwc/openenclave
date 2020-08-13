@@ -113,6 +113,7 @@ if (UNIX
     add_subdirectory(thread)
     add_subdirectory(threadcxx)
     add_subdirectory(thread_local)
+    add_subdirectory(thread_local_large)
     add_subdirectory(thread_local_no_tdata)
     add_subdirectory(VectorException)
     add_subdirectory(stack_smashing_protector)
@@ -128,6 +129,10 @@ if (UNIX
 
     if (WITH_EEID)
       add_subdirectory(eeid_plugin)
+    endif ()
+
+    if (BUILD_OPENSSL)
+      add_subdirectory(openssl)
     endif ()
   endif ()
 
