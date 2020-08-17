@@ -11,8 +11,8 @@ ECDSA-p256 formats.
 Existing OE SDK implements the functionality for SGX ECDSA quote verification.
 As implemented in code file `common/sgx/quote.c`, the verification code
 performs SGX cert chain verification and Enclave Identity
-verification, including x509 parser, cert revocation checking, JSON and etc.
-Also it would use some 3rd-party code, such as mbedtls.
+verification, including x509 parser, cert revocation checking, JSON parser and
+etc. Also it would use some 3rd-party code, such as mbedtls.
 
 Howevere, there are a few areas that could be improved:
 - Current SGX ECDSA quote verification logic in `common/sgx/quote.c`
@@ -24,9 +24,9 @@ Howevere, there are a few areas that could be improved:
     `SWConfigNeeded` should NOT be treated as critical error, it's up to
     verifier to decide whehter the platform TCB is valid or not.
 - In current implementaion, all the quote verification logics would be
-  built into verifer enclaves. This means that OE SDK greatly increases the TCB
-  of verifier enclaves. Once there is a security bug in verification logic,
-  including 3rd-party component. Verifer enclaves need to upgraded and rebuilt.
+  built into verifier enclaves. This means OE SDK greatly increases the TCB of
+  verifier enclaves. Once there is a security bug in verification logic,
+  including 3rd-party component. Verifier enclaves need to upgraded and rebuilt.
 
 # User Experience
 
@@ -35,12 +35,13 @@ attestation software stack. It does not impact the
 [OE SDK attestation API](https://github.com/openenclave/openenclave/pull/2949).
 
 
-If SGX verifier plugin is used, with the integration of SGX QVL, a verifier's
-call to OE SDK API `oe_verify_evidence()` would triggers quote verification by
-invoking Intel® SGX DCAP (QVL) or Quote Verification Enclave (QvE), depending on
-whether the call is from the enclave side or the host side.
+If SGX verifier plugin is used, with the integration of Intel® SGX DCAP (QVL)
+and Quote Verification Enclave (QvE), a verifier's call to OE SDK API
+`oe_verify_evidence()` would triggers quote verification by
+invoking QVL or QvE, depending on whether the call is from the enclave side or
+the host side.
 
-Integration of the quote verification library depends on the installation of the
+Integration of the quote verification library depends on the installation of
 Intel® SGX DCAP packages `libsgx-dcap-quote-verify` and `libsgx-ae-qve` and
 their dependencies, as well as proper configuration of the components and their
 access to dependent backend services (e.g. Quote Provider Library and
@@ -72,11 +73,11 @@ ECDSA quote verification:
 Based on design doc [Remote Attestation Collaterals](https://github.com/openenclave/openenclave/blob/master/docs/DesignDocs/RemoteAttestationCollaterals.md), new API `oe_verify_evidence()` will supersede
 `oe_verify_report()`. So we only discuss scenario 2 here. But in both scenarios,
 the same function `oe_verify_quote_with_sgx_endorsements()` is invoked for
-quote verificaiton.
+quote verification.
 
-The enclave-side and host-side plugin librariese implement in function
-`_verify_evidence()`, for SGX ECDSA-p256 quote verification, several functions
-are called in this function.
+The enclave-side and host-side plugin implement in function `_verify_evidence(),
+for SGX ECDSA-p256 quote verification, several functions are called in this
+function.
 - `oe_get_sgx_endorsements()` and `oe_parse_sgx_endorsements()`
   - Get relevant endorsements, including SGX PCK cert CRL, TCB info, QE identity
     and etc
@@ -175,8 +176,8 @@ typedef struct _sgx_ql_qv_supplemental_t
     time_t latest_issue_date;       ///< Latest issue date of all the collateral (UTC)
     time_t earliest_expiration_date;///< Earliest expiration date of all the collateral (UTC)
     time_t tcb_level_date_tag;      ///< The SGX TCB of the platform that generated the quote is not vulnerable
-                                    ///< to any Security Advisory with an SGX TCB impact released on or before this date.
-                                    ///< See Intel Security Center Advisories
+                                    ///< to any Security Advisory with an SGX TCB impact released on or before this date
+                                    ///< See [Intel Security Center Advisories](https://www.intel.com/content/www/us/en/security-center/default.html)
     uint32_t pck_crl_num;           ///< CRL Num from PCK Cert CRL
     uint32_t root_ca_crl_num;       ///< CRL Num from Root CA CRL
     uint32_t tcb_eval_ref_num;      ///< Lower number of the TCBInfo and QEIdentity
@@ -185,11 +186,13 @@ typedef struct _sgx_ql_qv_supplemental_t
     sgx_cpu_svn_t tcb_cpusvn;       ///< CPUSVN of the remote platform's PCK Cert
     sgx_isv_svn_t tcb_pce_isvsvn;   ///< PCE_ISVNSVN of the remote platform's PCK Cert
     uint16_t pce_id;                ///< PCE_ID of the remote platform
-    uint8_t sgx_type;               ///< Indicate the type of memory protection available on the platform, it should be one of Standard (0) and Scalable (1)
+    uint8_t sgx_type;               ///< Indicate the type of memory protection available on the platform, it should be
+                                    ///< one of Standard (0) and Scalable (1)
 
     // Multi-Package PCK cert related flags, they are only relevant to PCK Certificates issued by PCK Platform CA
     uint8_t platform_instance_id[16];///< Value of Platform Instance ID, 16 bytes
-    pck_cert_flag_enum_t dynamic_platform; ///< Indicate whether a platform can be extended with additional packages - via Package Add calls to SGX Registration Backend
+    pck_cert_flag_enum_t dynamic_platform; ///< Indicate whether a platform can be extended with additional packages
+                                           ///< via Package Add calls to SGX Registration Backend
     pck_cert_flag_enum_t cached_keys;      ///< Indicate whether platform root keys are cached by SGX Registration Backend
     pck_cert_flag_enum_t smt_enabled;      ///< Indicate whether a plat form has SMT (simultaneous multithreading) enabled
 
@@ -300,7 +303,7 @@ oe_result_t oe_verify_quote_ocall(
 
 ### Add function in enclave-side plugin for Intel® QvE Identity verification
 
-After quote verification, verifier needs to verify Intel® QvE's identityto make
+After quote verification, verifier needs to verify Intel® QvE's identity to make
 sure the results are from a trusted source.
 
 Intel® SGX SDK provides a library named `sgx_dcap_tvl` to help verifier to
@@ -313,11 +316,11 @@ This library uses hardcode QvE identity value, because:
 The only identity info may change frequently is QvE's ISV SVN, so verifier needs
 to provide a SVN number as threshold, only when current QvE's ISV SVN is larger
 or equal to this threshold, verifier can trust the QvE verification result.
-Verifier can get latest trusted QvE ISVSVN in [QvE Identity from Intel® Provisioning
+Verifier can get latest QvE ISV SVN from [QvE Identity at Intel® Provisioning
 Cert Server](https://api.portal.trustedservices.intel.com/documentation#pcs-qve-identity-v2)
 
 As OE SDK cannot use Intel® SGX SDK trusted library directly, we need to port
-this library into OE SDK.
+this library into OE SDK as part of enclave-side plugin.
 
 ```C
 oe_result_t oe_verify_qve_report_and_identity(
@@ -345,20 +348,20 @@ Rough process of this API:
   - Check Report.MRSIGNER is equal with Hardcode QvE MRSIGNER
   - Check Misc Select, Attribute and ProdID are equal with hardcode values,
     Misc select and Attribute need to apply Mask before compare
-  - Check Report.ISVSVN >= Hardcode ISVSVN
+- Check Report.ISVSVN >= Hardcode ISV SVN
 
-Options to provide QvE ISVSVN threshold:
-- Option 1: Hardcode QvE ISVSVN in enclave-side plugin. Then everytime QvE
-            ISVSVN is updated, the plugin library implementation will need to be
-            updated to stay in sync
+Options to provide QvE ISV SVN threshold:
+- Option 1: Hardcode QvE ISV SVN in enclave-side plugin. Then everytime QvE
+            ISV SVN is updated, the plugin library implementation will need to
+            be updated to stay in sync
 - Option 2: Update existing enclave-side plugin API to allow verifier to input
-            QvE ISVSVN as threshold. But it requires plugin API change, also
+            QvE ISV SVN as threshold. But it requires plugin API change, also
             it's NOT TEE agnostic
 
 We propose option 1 here to avoid plugin API change.
 
 ### Update `claim` to add SGX Quote Verification status and QVL/QvE returned supplemental data
-In remote attestation, verifier may want to provide a different quote
+In SGX remote attestation, verifier may want to provide a different quote
 verification policy beyond the policy enforced by the sgx_qv_verify_quote() API.
 
 The proposal here is to extend known `claim` definition to add more SGX related
