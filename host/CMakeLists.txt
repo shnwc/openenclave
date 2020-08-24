@@ -12,26 +12,14 @@ set(EDL_DIR ${PROJECT_SOURCE_DIR}/include/openenclave/edl)
 ##==============================================================================
 
 set(CORE_EDL_FILE ${EDL_DIR}/core.edl)
-if (COMPILE_SYSTEM_EDL)
-  add_custom_command(
-    OUTPUT core_u.h core_u.c core_args.h
-    DEPENDS ${CORE_EDL_FILE} edger8r
-    COMMAND edger8r --search-path ${OE_INCLUDE_DIR} --untrusted
-            ${CORE_EDL_FILE})
+# Only generate headers
+add_custom_command(
+  OUTPUT core_u.h core_args.h
+  DEPENDS ${CORE_EDL_FILE} edger8r
+  COMMAND edger8r --header-only --search-path ${OE_INCLUDE_DIR} --untrusted
+          ${CORE_EDL_FILE})
 
-  add_custom_target(core_untrusted_edl DEPENDS core_u.h core_u.c core_args.h)
-
-  list(APPEND PLATFORM_SDK_ONLY_SRC core_u_wrapper.c)
-else ()
-  # Only generate headers
-  add_custom_command(
-    OUTPUT core_u.h core_args.h
-    DEPENDS ${CORE_EDL_FILE} edger8r
-    COMMAND edger8r --header-only --search-path ${OE_INCLUDE_DIR} --untrusted
-            ${CORE_EDL_FILE})
-
-  add_custom_target(core_untrusted_edl DEPENDS core_u.h core_args.h)
-endif ()
+add_custom_target(core_untrusted_edl DEPENDS core_u.h core_args.h)
 
 ##==============================================================================
 ##
@@ -95,17 +83,7 @@ install(DIRECTORY ${OE_EDL_INCLUDE_DIR}
 ##==============================================================================
 
 set(SGX_EDL_FILE ${EDL_DIR}/sgx/platform.edl)
-if (OE_SGX AND COMPILE_SYSTEM_EDL)
-  add_custom_command(
-    OUTPUT platform_u.h platform_u.c platform_args.h
-    DEPENDS ${SGX_EDL_FILE} edger8r
-    COMMAND edger8r --search-path ${OE_INCLUDE_DIR} --untrusted ${SGX_EDL_FILE})
-
-  add_custom_target(platform_untrusted_edl DEPENDS platform_u.h platform_u.c
-                                                   platform_args.h)
-
-  list(APPEND PLATFORM_SDK_ONLY_SRC sgx/platform_u_wrapper.c)
-elseif (OE_SGX)
+if (OE_SGX)
   add_custom_command(
     OUTPUT platform_u.h platform_args.h
     DEPENDS ${SGX_EDL_FILE} edger8r
@@ -123,25 +101,13 @@ endif ()
 ##==============================================================================
 
 set(SYSCALL_EDL ${EDL_DIR}/syscall.edl)
-if (COMPILE_SYSTEM_EDL)
-  add_custom_command(
-    OUTPUT syscall_u.h syscall_u.c syscall_args.h
-    DEPENDS ${SYSCALL_EDL} edger8r
-    COMMAND edger8r --search-path ${OE_INCLUDE_DIR} --untrusted ${SYSCALL_EDL})
+add_custom_command(
+  OUTPUT syscall_u.h syscall_args.h
+  DEPENDS ${SYSCALL_EDL} edger8r
+  COMMAND edger8r --header-only --search-path ${OE_INCLUDE_DIR} --untrusted
+          ${SYSCALL_EDL})
 
-  add_custom_target(syscall_untrusted_edl DEPENDS syscall_u.h syscall_u.c
-                                                  syscall_args.h)
-
-  list(APPEND PLATFORM_SDK_ONLY_SRC syscall_u_wrapper.c)
-else ()
-  add_custom_command(
-    OUTPUT syscall_u.h syscall_args.h
-    DEPENDS ${SYSCALL_EDL} edger8r
-    COMMAND edger8r --header-only --search-path ${OE_INCLUDE_DIR} --untrusted
-            ${SYSCALL_EDL})
-
-  add_custom_target(syscall_untrusted_edl DEPENDS syscall_u.h syscall_args.h)
-endif ()
+add_custom_target(syscall_untrusted_edl DEPENDS syscall_u.h syscall_args.h)
 
 ##==============================================================================
 ##
@@ -262,7 +228,9 @@ if (OE_SGX)
     sgx/exception.c
     sgx/load.c
     sgx/loadelf.c
-    sgx/ocalls.c
+    sgx/ocalls/debug.c
+    sgx/ocalls/ocalls.c
+    sgx/ocalls/thread.c
     sgx/quote.c
     sgx/registers.c
     sgx/report.c
@@ -335,6 +303,7 @@ list(
   APPEND
   PLATFORM_HOST_ONLY_SRC
   ../common/attest_plugin.c
+  ../common/custom_claims.c
   ../common/datetime.c
   ../common/safecrt.c
   ../common/sha.c
@@ -353,7 +322,10 @@ list(
   ../common/argv.c
   asym_keys.c
   calls.c
-  ocalls.c
+  ocalls/log.c
+  ocalls/ocalls.c
+  ocalls/memory.c
+  ocalls/write.c
   error.c
   files.c
   fopen.c
@@ -466,10 +438,6 @@ target_compile_definitions(
 
 if (USE_DEBUG_MALLOC)
   target_compile_definitions(oehost PRIVATE OE_USE_DEBUG_MALLOC)
-endif ()
-
-if (COMPILE_SYSTEM_EDL)
-  target_compile_definitions(oehost PRIVATE OE_USE_BUILTIN_EDL)
 endif ()
 
 if (WITH_EEID)

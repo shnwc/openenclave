@@ -23,7 +23,6 @@
 #include "../core/sgx/report.h"
 #include "platform_t.h"
 
-#if !defined(OE_USE_BUILTIN_EDL)
 /**
  * Declare the prototype of the following function to avoid the
  * missing-prototypes warning.
@@ -60,8 +59,6 @@ OE_WEAK_ALIAS(
     _oe_get_supported_attester_format_ids_ocall,
     oe_get_supported_attester_format_ids_ocall);
 
-#endif
-
 static const oe_uuid_t _local_uuid = {OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
 static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA};
 static const oe_uuid_t _epid_linkable_uuid = {OE_FORMAT_UUID_SGX_EPID_LINKABLE};
@@ -90,8 +87,8 @@ static oe_result_t _on_unregister(oe_attestation_role_t* context)
 // Roughtly 0.5 seconds with endorsements.
 static oe_result_t _get_evidence(
     oe_attester_t* context,
-    const void* custom_claims,
-    size_t custom_claims_size,
+    const void* custom_claims_buffer,
+    size_t custom_claims_buffer_size,
     const void* opt_params,
     size_t opt_params_size,
     uint8_t** evidence_buffer,
@@ -123,7 +120,7 @@ static oe_result_t _get_evidence(
     format_id = &context->base.format_id;
     quote_format_id = format_id;
 
-    // Set flags based on format UUID, ignore and overwrite the input value
+    // Set flags based on format id, ignore and overwrite the input value
     if (!memcmp(format_id, &_local_uuid, sizeof(oe_uuid_t)))
     {
         flags = 0;
@@ -152,13 +149,15 @@ static oe_result_t _get_evidence(
         oe_report_header_t* header = NULL;
         OE_SHA256 hash;
 
-        // Hash the custom_claims.
+        // Hash the custom_claims_buffer.
         OE_CHECK_MSG(
-            oe_sgx_hash_custom_claims(custom_claims, custom_claims_size, &hash),
-            "SGX Plugin: Failed to hash custom_claims. %s",
+            oe_sgx_hash_custom_claims_buffer(
+                custom_claims_buffer, custom_claims_buffer_size, &hash),
+            "SGX Plugin: Failed to hash custom_claims_buffer. %s",
             oe_result_str(result));
 
-        // Get the report with the hash of the custom_claims as the report data.
+        // Get the report with the hash of the custom_claims_buffer as the
+        // report data.
         OE_CHECK_MSG(
             oe_get_report_v2_internal(
                 flags,
@@ -172,7 +171,7 @@ static oe_result_t _get_evidence(
             "SGX Plugin: Failed to get OE report. %s",
             oe_result_str(result));
 
-        // Combine the report body and custom_claims to get the evidence.
+        // Combine the report body and custom_claims_buffer to get the evidence.
         // Drop the legacy report header
         header = (oe_report_header_t*)report;
         tmp_buffer_size = header->report_size + custom_claims_size;
@@ -185,8 +184,8 @@ static oe_result_t _get_evidence(
         // Copy custom claims to evidence
         memcpy(
             tmp_buffer + header->report_size,
-            custom_claims,
-            custom_claims_size);
+            custom_claims_buffer,
+            custom_claims_buffer_size);
 
         // Get the endorsements from the report if needed.
         if (endorsements_buffer && flags == OE_REPORT_FLAGS_REMOTE_ATTESTATION)
@@ -205,13 +204,13 @@ static oe_result_t _get_evidence(
     {
         oe_report_header_t* header = NULL;
 
-        // Get the report with the custom_claims as the report data.
+        // Get the report with the custom_claims_buffer as the report data.
         OE_CHECK_MSG(
             oe_get_report_v2_internal(
                 flags,
                 quote_format_id,
-                custom_claims,
-                custom_claims_size,
+                custom_claims_buffer,
+                custom_claims_buffer_size,
                 opt_params,
                 opt_params_size,
                 &report,

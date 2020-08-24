@@ -15,9 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for arbitrarily large thread-local data for SGX machines.
 
 ### Changed
+- Rename the custom claims buffer added by oe_get_evidence from "custom_claims" to "custom_claims_buffer". Likewise, replace the `OE_CLAIM_CUSTOM_CLAIMS` definition for this name with `OE_CLAIM_CUSTOM_CLAIMS_BUFFER`.
 
 ### Removed
 
+### Security
+- Update mbedTLS to version 2.16.7. Refer to the [2.16.7 release notes](
+  https://github.com/ARMmbed/mbedtls/releases/tag/v2.16.7) for the set of
+  issues addressed.
 
 [0.10.0][v0.10.0_log]
 ------------

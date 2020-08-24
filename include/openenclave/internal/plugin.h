@@ -94,9 +94,9 @@ struct _oe_attester
      * @experimental
      *
      * @param[in] context A pointer to the attester plugin struct.
-     * @param[in] custom_claims The optional custom claims buffer.
-     * @param[in] custom_claims_size The number of bytes in the custom claims
-     * buffer.
+     * @param[in] custom_claims_buffer The optional custom claims buffer.
+     * @param[in] custom_claims_buffer_size The number of bytes in the custom
+     * claims buffer.
      * @param[in] opt_params The optional plugin-specific input parameters.
      * @param[in] opt_params_size The size of opt_params in bytes.
      * @param[out] evidence_buffer An output pointer that will be assigned the
@@ -112,8 +112,8 @@ struct _oe_attester
      */
     oe_result_t (*get_evidence)(
         oe_attester_t* context,
-        const void* custom_claims,
-        size_t custom_claims_size,
+        const void* custom_claims_buffer,
+        size_t custom_claims_buffer_size,
         const void* opt_params,
         size_t opt_params_size,
         uint8_t** evidence_buffer,
@@ -231,7 +231,7 @@ struct _oe_verifier
      *
      * Each plugin must return the following required claims:
      *  - id_version (uint32_t)
-     *      - Version number. Must be 1.
+     *      - Version number.
      *  - security_version (uint32_t)
      *      - Security version of the enclave. (ISVN for SGX).
      *  - attributes (uint64_t)
@@ -253,7 +253,7 @@ struct _oe_verifier
      *      - The latest datetime until which the evidence and endorsements are
      *        both valid.
      * - format_uuid (uint8_t[16])
-     *      - The format UUID of the verified evidence.
+     *      - The format id of the verified evidence.
      *
      * The plugin is responsible for handling endianness and ensuring that the
      * data from the raw evidence converted properly for each platform.
