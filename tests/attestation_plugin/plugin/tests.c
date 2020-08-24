@@ -406,41 +406,33 @@ static void _test_time(
 {
     oe_datetime_t tmp;
 
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_sgx_quote(
-            report_body,
-            report_body_size,
-            collaterals,
-            collaterals_size,
-            from) == OE_OK);
+            report_body, report_body_size, collaterals, collaterals_size, from),
+        OE_OK);
 
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_sgx_quote(
             report_body,
             report_body_size,
             collaterals,
             collaterals_size,
-            until) == OE_OK);
+            until),
+        OE_OK);
 
     tmp = *from;
     tmp.year--;
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_sgx_quote(
-            report_body,
-            report_body_size,
-            collaterals,
-            collaterals_size,
-            &tmp) == OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
+            report_body, report_body_size, collaterals, collaterals_size, &tmp),
+        OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
 
     tmp = *until;
     tmp.year++;
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_sgx_quote(
-            report_body,
-            report_body_size,
-            collaterals,
-            collaterals_size,
-            &tmp) == OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
+            report_body, report_body_size, collaterals, collaterals_size, &tmp),
+        OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
 }
 
 static void _test_time_policy(
@@ -475,10 +467,10 @@ static void _test_time_policy(
             &claims,
             &claims_size),
         OE_OK);
-    OE_TEST(oe_free_claims(claims, claims_size) == OE_OK);
+    OE_TEST_CODE(oe_free_claims(claims, claims_size), OE_OK);
 
     dt = *until;
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_evidence(
             wrapped_with_header ? NULL : format_id,
             evidence,
@@ -488,12 +480,13 @@ static void _test_time_policy(
             &policy,
             1,
             &claims,
-            &claims_size) == OE_OK);
-    OE_TEST(oe_free_claims(claims, claims_size) == OE_OK);
+            &claims_size),
+        OE_OK);
+    OE_TEST_CODE(oe_free_claims(claims, claims_size), OE_OK);
 
     dt = *from;
     dt.year--;
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_evidence(
             wrapped_with_header ? NULL : format_id,
             evidence,
@@ -503,11 +496,12 @@ static void _test_time_policy(
             &policy,
             1,
             &claims,
-            &claims_size) == OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
+            &claims_size),
+        OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
 
     dt = *until;
     dt.year++;
-    OE_TEST(
+    OE_TEST_CODE(
         oe_verify_evidence(
             wrapped_with_header ? NULL : format_id,
             evidence,
@@ -517,15 +511,15 @@ static void _test_time_policy(
             &policy,
             1,
             &claims,
-            &claims_size) == OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
+            &claims_size),
+        OE_VERIFY_FAILED_TO_FIND_VALIDITY_PERIOD);
 }
 
 static const oe_uuid_t _local_uuid = {OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
-static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
+static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA};
 static const oe_uuid_t _ecdsa_report_uuid = {
-    OE_FORMAT_UUID_SGX_ECDSA_P256_REPORT};
-static const oe_uuid_t _ecdsa_quote_uuid = {
-    OE_FORMAT_UUID_SGX_ECDSA_P256_QUOTE};
+    OE_FORMAT_UUID_LEGACY_REPORT_REMOTE};
+static const oe_uuid_t _ecdsa_quote_uuid = {OE_FORMAT_UUID_RAW_SGX_QUOTE_ECDSA};
 
 void verify_sgx_evidence(
     const oe_uuid_t* format_id,
@@ -568,32 +562,37 @@ void verify_sgx_evidence(
 
     if (!memcmp(format_id, &_local_uuid, sizeof(oe_uuid_t)))
     {
-        // evidence has oe_report_header_t
-        oe_report_header_t* report =
-            (oe_report_header_t*)(wrapped_with_header ? evidence_header->data : evidence);
+        // evidence might be prefixed with oe_attestation_header_t
+        // but not with oe_report_header_t
+        if (wrapped_with_header)
+        {
+            OE_TEST(evidence_size > sizeof(oe_attestation_header_t));
+            report_body = evidence_header->data;
+        }
+        else
+            report_body = evidence;
 
-        OE_TEST(
-            report->version == OE_REPORT_HEADER_VERSION &&
-            report->report_type == OE_REPORT_TYPE_SGX_LOCAL);
+        report_body_size = sizeof(sgx_report_t);
 
         format_type = SGX_FORMAT_TYPE_LOCAL;
-        report_body = report->report;
-        report_body_size = report->report_size;
         is_local = true;
     }
     else if (!memcmp(format_id, &_ecdsa_uuid, sizeof(oe_uuid_t)))
     {
-        // evidence has oe_report_header_t
-        oe_report_header_t* report =
-            (oe_report_header_t*)(wrapped_with_header ? evidence_header->data : evidence);
+        // evidence might be prefixed with oe_attestation_header_t
+        // but not with oe_report_header_t
+        if (wrapped_with_header)
+        {
+            OE_TEST(evidence_size > sizeof(oe_attestation_header_t));
+            report_body = evidence_header->data;
+        }
+        else
+            report_body = evidence;
 
-        OE_TEST(
-            report->version == OE_REPORT_HEADER_VERSION &&
-            report->report_type == OE_REPORT_TYPE_SGX_REMOTE);
+        report_body_size =
+            sizeof(sgx_quote_t) + ((sgx_quote_t*)report_body)->signature_len;
 
         format_type = SGX_FORMAT_TYPE_REMOTE;
-        report_body = report->report;
-        report_body_size = report->report_size;
         is_local = false;
     }
     else if (!memcmp(format_id, &_ecdsa_report_uuid, sizeof(oe_uuid_t)))
@@ -764,7 +763,8 @@ void verify_sgx_evidence(
     {
         if (format_type == SGX_FORMAT_TYPE_LOCAL ||
             format_type == SGX_FORMAT_TYPE_REMOTE)
-            value = _find_claim(claims, claims_size, OE_CLAIM_CUSTOM_CLAIMS);
+            value =
+                _find_claim(claims, claims_size, OE_CLAIM_CUSTOM_CLAIMS_BUFFER);
         else
             value = _find_claim(claims, claims_size, OE_CLAIM_SGX_REPORT_DATA);
 
@@ -842,8 +842,10 @@ void verify_sgx_evidence(
         oe_result_t result;
         oe_attestation_header_t* evidence_header =
             (oe_attestation_header_t*)evidence;
-        oe_report_header_t* report_header =
-            (oe_report_header_t*)evidence_header->data;
+        const sgx_quote_t* quote = (sgx_quote_t*)evidence_header->data;
+        size_t quote_size = sizeof(*quote) + quote->signature_len;
+        uint8_t* report_buffer = NULL;
+        size_t report_buffer_size = sizeof(oe_report_header_t) + quote_size;
         OE_SHA256 hash;
 
         printf("====== running verify_sgx_evidence on extracted OE_report "
@@ -853,11 +855,22 @@ void verify_sgx_evidence(
             oe_sgx_hash_custom_claims(custom_claims, custom_claims_size, &hash),
             OE_OK);
 
+        report_buffer = (uint8_t*)oe_malloc(report_buffer_size);
+        OE_TEST(report_buffer != NULL);
+        { // Create a temporary buffer with OE report for SGX remote attestation
+            oe_report_header_t* report_header =
+                (oe_report_header_t*)report_buffer;
+            report_header->version = OE_REPORT_HEADER_VERSION;
+            report_header->report_type = OE_REPORT_TYPE_SGX_REMOTE;
+            report_header->report_size = quote_size;
+            memcpy(report_header->report, quote, quote_size);
+        }
+
         OE_TEST_CODE(
             oe_verify_evidence(
                 &_ecdsa_report_uuid,
-                evidence_header->data,
-                sizeof(oe_report_header_t) + report_header->report_size,
+                report_buffer,
+                report_buffer_size,
                 NULL,
                 0,
                 NULL,
@@ -865,6 +878,9 @@ void verify_sgx_evidence(
                 &claims,
                 &claims_size),
             OE_OK);
+
+        oe_free(report_buffer);
+        report_buffer = NULL;
 
         value = _find_claim(claims, claims_size, OE_CLAIM_SGX_REPORT_DATA);
 
@@ -877,8 +893,8 @@ void verify_sgx_evidence(
         OE_TEST_CODE(
             oe_verify_evidence(
                 &_ecdsa_quote_uuid,
-                report_header->report,
-                report_header->report_size,
+                (const uint8_t*)quote,
+                quote_size,
                 NULL,
                 0,
                 NULL,
@@ -902,8 +918,8 @@ void verify_sgx_evidence(
         // find a plugin, since the evidence has no valid attestation header.
         result = oe_verify_evidence(
             NULL,
-            evidence_header->data,
-            sizeof(oe_report_header_t) + report_header->report_size,
+            (const uint8_t*)quote,
+            quote_size,
             NULL,
             0,
             NULL,

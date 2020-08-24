@@ -116,7 +116,7 @@ OE_WEAK_ALIAS(_oe_verify_report_ecall, oe_verify_report_ecall);
 
 OE_STATIC_ASSERT(OE_REPORT_DATA_SIZE == sizeof(sgx_report_data_t));
 
-static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA_P256};
+static const oe_uuid_t _ecdsa_uuid = {OE_FORMAT_UUID_SGX_ECDSA};
 
 oe_result_t oe_get_report_v2(
     oe_enclave_t* enclave,
