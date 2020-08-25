@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 #include <openenclave/attestation/sgx/evidence.h>
-#include <openenclave/bits/sgx/sgxtypes.h>
 #include <openenclave/attestation/verifier.h>
+#include <openenclave/bits/sgx/sgxtypes.h>
 #include <openenclave/internal/hexdump.h>
 #include <openenclave/internal/plugin.h>
 #include <openenclave/internal/raise.h>

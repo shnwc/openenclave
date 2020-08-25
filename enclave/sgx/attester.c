@@ -174,7 +174,7 @@ static oe_result_t _get_evidence(
         // Combine the report body and custom_claims_buffer to get the evidence.
         // Drop the legacy report header
         header = (oe_report_header_t*)report;
-        tmp_buffer_size = header->report_size + custom_claims_size;
+        tmp_buffer_size = header->report_size + custom_claims_buffer_size;
         tmp_buffer = (uint8_t*)oe_malloc(tmp_buffer_size);
         if (tmp_buffer == NULL)
             OE_RAISE(OE_OUT_OF_MEMORY);
