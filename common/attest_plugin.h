@@ -20,11 +20,19 @@
 
 OE_EXTERNC_BEGIN
 
-// Note: V1 is OE_REPORT_HEADER_VERSION, for legacy report header
-// V2 is for legacy attestation header that, for SGX local and remote
-// attestation, requires a legacy report header to prefix the SGX report or
-// quote. V3 is current version, for attestation header without a legacy report
-// header
+/**
+ * Note: V1 is OE_REPORT_HEADER_VERSION, for legacy report header
+ * of type oe_report_header_t.
+ *
+ * V2 is for legacy attestation header of type oe_attestation_header_t.
+ * For SGX local and remote attestation, the evidence requires a legacy
+ * report header of type oe_report_header_t to prefix the SGX report or
+ * quote.
+ *
+ * V3 is the current version. Its also for attestation header of type
+ * oe_attestation_header_t. SGX report or quote will not be prefixed with
+ * a legacy header of type oe_report_header_t.
+ */
 #define OE_ATTESTATION_HEADER_VERSION (3)
 
 /**

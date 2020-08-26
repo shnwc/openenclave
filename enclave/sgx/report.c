@@ -43,13 +43,13 @@ static oe_result_t _get_report_key(
     result = OE_OK;
 
 done:
-    // Cleanup secret.
+    // Clean up secret.
     oe_secure_zero_fill(&sgx_key_request, sizeof(sgx_key_request));
 
     return result;
 }
 
-// The input report_buffer helds a raw sgx_report_t structure.
+// The input report_buffer holds a raw sgx_report_t structure.
 oe_result_t oe_verify_raw_sgx_report(
     const uint8_t* report_buffer,
     size_t report_buffer_size)
@@ -83,7 +83,7 @@ oe_result_t oe_verify_raw_sgx_report(
     result = OE_OK;
 
 done:
-    // Cleanup secret.
+    // Clean up secret.
     oe_secure_zero_fill(&sgx_key, sizeof(sgx_key));
 
     return result;
