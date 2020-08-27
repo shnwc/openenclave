@@ -45,12 +45,18 @@
  *
  * | Format ID | Evidence structure  |
  * | -- | - |
- * | OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION | [ oe_attestation_header ] \|\| SGX_report(hash) \|\| custom_claims_buffer |
- * | OE_FORMAT_UUID_SGX_ECDSA | [ oe_attestation_header ] \|\| SGX_ECDSA_quote(hash) \|\| custom_claims_buffer |
- * | OE_FORMAT_UUID_SGX_EPID_LINKABLE | [ oe_attestation_header ] \|\| SGX_EPID_linkable_quote(custom_claims_buffer) |
- * | OE_FORMAT_UUID_SGX_EPID_UNLINKABLE | [ oe_attestation_header ] \|\| SGX_EPID_unlinkable_quote(custom_claims_buffer) |
- * | OE_FORMAT_UUID_LEGACY_REPORT_REMOTE | oe_report_header (for remote attestation) \|\| SGX_ECDSA_quote(custom_claims_buffer) |
- * | OE_FORMAT_UUID_RAW_SGX_QUOTE_ECDSA | SGX_ECDSA_quote(custom_claims_buffer) |
+ * | OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION | [ oe_attestation_header ] <!--
+ * --> \|\| SGX_report(hash) \|\| custom_claims_buffer |
+ * | OE_FORMAT_UUID_SGX_ECDSA | [ oe_attestation_header ] \|\| <!--
+ * --> SGX_ECDSA_quote(hash) \|\| custom_claims_buffer |
+ * | OE_FORMAT_UUID_SGX_EPID_LINKABLE | [ oe_attestation_header ] \|\| <!--
+ * --> SGX_EPID_linkable_quote(custom_claims_buffer) |
+ * | OE_FORMAT_UUID_SGX_EPID_UNLINKABLE | [ oe_attestation_header ] \|\| <!--
+ * --> SGX_EPID_unlinkable_quote(custom_claims_buffer) |
+ * | OE_FORMAT_UUID_LEGACY_REPORT_REMOTE | oe_report_header (for remote <!--
+ * --> attestation) \|\| SGX_ECDSA_quote(custom_claims_buffer) |
+ * | OE_FORMAT_UUID_RAW_SGX_QUOTE_ECDSA | <!--
+ * --> SGX_ECDSA_quote(custom_claims_buffer) |
  *
  * In the above table:
  * - The optional header oe_attestation_header is a structure of type
