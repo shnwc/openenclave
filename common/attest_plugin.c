@@ -306,7 +306,11 @@ oe_result_t oe_verify_evidence(
 
         if (evidence_buffer_size < sizeof(oe_attestation_header_t) ||
             evidence->version != OE_ATTESTATION_HEADER_VERSION)
-            OE_RAISE(OE_INVALID_PARAMETER);
+            OE_RAISE_MSG(
+                OE_INVALID_PARAMETER,
+                "Invalid attestation header version %d, expected %d",
+                evidence->version,
+                OE_ATTESTATION_HEADER_VERSION);
 
         if (endorsements_buffer)
         {
@@ -315,7 +319,11 @@ oe_result_t oe_verify_evidence(
 
             if (endorsements_buffer_size < sizeof(oe_attestation_header_t) ||
                 endorsements->version != OE_ATTESTATION_HEADER_VERSION)
-                OE_RAISE(OE_INVALID_PARAMETER);
+                OE_RAISE_MSG(
+                    OE_INVALID_PARAMETER,
+                    "Invalid attestation header version %d, expected %d",
+                    endorsements->version,
+                    OE_ATTESTATION_HEADER_VERSION);
 
             if (memcmp(
                     &evidence->format_id,
@@ -447,7 +455,11 @@ oe_result_t oe_verify_attestation_certificate_with_evidence(
         // find the report version
         header = (oe_report_header_t*)report;
         if (header->version != OE_ATTESTATION_HEADER_VERSION)
-            OE_RAISE_MSG(OE_INVALID_PARAMETER, "Invalid report version", NULL);
+            OE_RAISE_MSG(
+                OE_INVALID_PARAMETER,
+                "Invalid attestation header version %d, expected %d",
+                header->version,
+                OE_ATTESTATION_HEADER_VERSION);
 
         result = oe_verify_evidence(
             // The format ID parameter is NULL in this case, as the format ID is

@@ -59,7 +59,8 @@ OE_WEAK_ALIAS(
     _oe_get_supported_attester_format_ids_ocall,
     oe_get_supported_attester_format_ids_ocall);
 
-static const oe_uuid_t _uuid_sgx_local = {OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
+static const oe_uuid_t _uuid_sgx_local_attestation = {
+    OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
 static const oe_uuid_t _uuid_sgx_ecdsa = {OE_FORMAT_UUID_SGX_ECDSA};
 static const oe_uuid_t _uuid_epid_linkable = {OE_FORMAT_UUID_SGX_EPID_LINKABLE};
 static const oe_uuid_t _uuid_epid_unlinkable = {
@@ -121,7 +122,7 @@ static oe_result_t _get_evidence(
     quote_format_id = format_id;
 
     // Set flags based on format id, ignore and overwrite the input value
-    if (!memcmp(format_id, &_uuid_sgx_local, sizeof(oe_uuid_t)))
+    if (!memcmp(format_id, &_uuid_sgx_local_attestation, sizeof(oe_uuid_t)))
     {
         flags = 0;
         format_type = SGX_FORMAT_TYPE_LOCAL;
@@ -301,9 +302,10 @@ static oe_result_t _get_report(
         OE_RAISE(OE_INVALID_PARAMETER);
 
     // Check to ensure the flags matches the plugin UUID
-    if ((!flags &&
-         !memcmp(
-             &context->base.format_id, &_uuid_sgx_local, sizeof(oe_uuid_t))) ||
+    if ((!flags && !memcmp(
+                       &context->base.format_id,
+                       &_uuid_sgx_local_attestation,
+                       sizeof(oe_uuid_t))) ||
         (flags == OE_REPORT_FLAGS_REMOTE_ATTESTATION &&
          !memcmp(
              &context->base.format_id, &_uuid_sgx_ecdsa, sizeof(oe_uuid_t))))
@@ -394,7 +396,9 @@ static oe_result_t _get_attester_plugins(
         oe_attester_t* plugin = *attesters + i;
         if (i == 0) // First plugin is for SGX local attestation
             memcpy(
-                &plugin->base.format_id, &_uuid_sgx_local, sizeof(oe_uuid_t));
+                &plugin->base.format_id,
+                &_uuid_sgx_local_attestation,
+                sizeof(oe_uuid_t));
         else
             memcpy(
                 &plugin->base.format_id,

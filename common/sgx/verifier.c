@@ -33,7 +33,8 @@ typedef oe_mutex oe_mutex_t;
 #define OE_MUTEX_INITIALIZER OE_H_MUTEX_INITIALIZER
 #endif
 
-static const oe_uuid_t _uuid_sgx_local = {OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
+static const oe_uuid_t _uuid_sgx_local_attestation = {
+    OE_FORMAT_UUID_SGX_LOCAL_ATTESTATION};
 static const oe_uuid_t _uuid_sgx_ecdsa = {OE_FORMAT_UUID_SGX_ECDSA};
 static const oe_uuid_t _uuid_legacy_report_remote = {
     OE_FORMAT_UUID_LEGACY_REPORT_REMOTE};
@@ -577,7 +578,7 @@ static oe_result_t _verify_evidence(
     // Check the datetime policy if it exists.
     OE_CHECK(_get_input_time(policies, policies_size, &time));
 
-    if (!memcmp(format_id, &_uuid_sgx_local, sizeof(oe_uuid_t)))
+    if (!memcmp(format_id, &_uuid_sgx_local_attestation, sizeof(oe_uuid_t)))
     {
         // evidence_buffer has an SGX report for local attestation
         // followed by an optional custom claims buffer.
@@ -739,7 +740,10 @@ static oe_result_t _get_format_settings(
     if (!context || !settings || !settings_size)
         OE_RAISE(OE_INVALID_PARAMETER);
 
-    if (!memcmp(&context->base.format_id, &_uuid_sgx_local, sizeof(oe_uuid_t)))
+    if (!memcmp(
+            &context->base.format_id,
+            &_uuid_sgx_local_attestation,
+            sizeof(oe_uuid_t)))
     {
 #ifdef OE_BUILD_ENCLAVE
         // Enclave-side, SGX local attestation is supported
@@ -807,7 +811,9 @@ static oe_result_t _verify_report(
     if (
 #ifdef OE_BUILD_ENCLAVE
         !memcmp(
-            &context->base.format_id, &_uuid_sgx_local, sizeof(oe_uuid_t)) ||
+            &context->base.format_id,
+            &_uuid_sgx_local_attestation,
+            sizeof(oe_uuid_t)) ||
 #endif
         !memcmp(&context->base.format_id, &_uuid_sgx_ecdsa, sizeof(oe_uuid_t)))
     {
@@ -842,7 +848,7 @@ static oe_result_t _get_verifier_plugins(
     uuids[2] = &_uuid_raw_sgx_quote_ecdsa;
 
 #ifdef OE_BUILD_ENCLAVE
-    uuids[3] = &_uuid_sgx_local;
+    uuids[3] = &_uuid_sgx_local_attestation;
     uuid_count =
         4; // In enclave, local attestation and 3 ECDSA formats are supported.
 #else
