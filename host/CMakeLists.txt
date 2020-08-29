@@ -129,16 +129,11 @@ if (UNIX)
     crypto/openssl/key.c
     crypto/openssl/rsa.c
     crypto/openssl/sha.c
-    linux/hostthread.c)
-
-  list(
-    APPEND
-    PLATFORM_SDK_ONLY_SRC
-    ../common/asn1.c
-    crypto/openssl/hmac.c
-    crypto/openssl/random.c
-    linux/syscall.c
+    linux/hostthread.c
     linux/time.c)
+
+  list(APPEND PLATFORM_SDK_ONLY_SRC ../common/asn1.c crypto/openssl/hmac.c
+       crypto/openssl/random.c linux/syscall.c)
 elseif (WIN32)
   list(
     APPEND
@@ -152,7 +147,8 @@ elseif (WIN32)
     crypto/bcrypt/sha.c
     crypto/bcrypt/pem.c
     crypto/bcrypt/util.c
-    windows/hostthread.c)
+    windows/hostthread.c
+    windows/time.c)
 
   list(
     APPEND
@@ -171,8 +167,7 @@ elseif (WIN32)
     crypto/bcrypt/rsa.c
     crypto/bcrypt/sha.c
     windows/hostthread.c
-    windows/syscall.c
-    windows/time.c)
+    windows/syscall.c)
 else ()
   message(
     FATAL_ERROR "Unknown OS. The only supported OSes are Linux and Windows")
@@ -210,6 +205,7 @@ if (OE_SGX)
     ../common/sgx/tlsverifier.c
     ../common/sgx/verifier.c
     sgx/hostverify_report.c
+    sgx/report_common.c
     sgx/sgxquoteprovider.c)
 
   if (WITH_EEID)
@@ -233,6 +229,7 @@ if (OE_SGX)
     sgx/ocalls/thread.c
     sgx/quote.c
     sgx/registers.c
+    sgx/report_common.c
     sgx/report.c
     sgx/sgx_enclave_common_wrapper.c
     sgx/sgxload.c
@@ -469,6 +466,8 @@ target_compile_definitions(
   oehostverify
   PRIVATE $<TARGET_PROPERTY:oehost,COMPILE_DEFINITIONS>
   INTERFACE $<TARGET_PROPERTY:oehost,INTERFACE_COMPILE_DEFINITIONS>)
+
+target_compile_definitions(oehostverify PUBLIC OE_BUILD_HOST_VERIFY)
 
 # TODO: Remove this hard coded output directory.
 set_property(TARGET oehost PROPERTY ARCHIVE_OUTPUT_DIRECTORY
