@@ -45,7 +45,8 @@ if (BUILD_ENCLAVES)
         WORLD_EXECUTE
         WORLD_READ)
 
-  install(DIRECTORY helloworld file-encryptor data-sealing switchless
+  install(DIRECTORY data-sealing file-encryptor helloworld log_callback
+                    switchless
           DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples)
 
   if (COMPILER_SUPPORTS_SNMALLOC)
@@ -64,21 +65,16 @@ install(
   DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples
   COMPONENT OEHOSTVERIFY)
 
-if (WIN32)
-  install(
-    FILES README_Windows.md
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples
-    RENAME README.md)
-else ()
+install(
+  FILES README.md BuildSamplesWindows.md BuildSamplesLinux.md
+  DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples)
+
+if(UNIX)
   install(
     FILES config.mk
     DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples
     COMPONENT OEHOSTVERIFY)
-  install(
-    FILES README_Linux.md
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/openenclave/samples
-    RENAME README.md)
-endif ()
+endif()
 
 if (WIN32)
   add_test(

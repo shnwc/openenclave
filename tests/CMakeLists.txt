@@ -49,7 +49,8 @@ if (OE_SGX)
   add_subdirectory(switchless_worksleep)
   add_subdirectory(switchless_one_tcs)
 
-  if (COMPILER_SUPPORTS_SNMALLOC)
+  if (COMPILER_SUPPORTS_SNMALLOC AND NOT USE_SNMALLOC)
+    # Do not build that test if we are already using snmalloc for all other tests
     add_subdirectory(snmalloc)
   else ()
     message("The C++ compiler cannot compile snmalloc. Skipping snmalloc test.")
@@ -67,8 +68,16 @@ if (UNIX
     if (BUILD_ENCLAVES)
       # Disable the memory test for the scenario of building the enclave in Linux and running
       # it on Windows because of the mismatch on the enclave heap size configuration.
-      add_subdirectory(memory)
-      add_subdirectory(tls_e2e)
+      # Also disable the memory test with snmalloc for now because it calls dlmallinfo
+      if (NOT USE_SNMALLOC)
+        add_subdirectory(memory)
+      endif ()
+      # Disable tls_e2e on RHEL. For some reasons it may hang on RHEL.
+      # https://github.com/openenclave/openenclave/issues/3508
+      find_file(REDHAT_FOUND redhat-release redhat-release.conf PATHS /etc)
+      if (NOT REDHAT_FOUND)
+        add_subdirectory(tls_e2e)
+      endif ()
     endif ()
 
     add_subdirectory(abi)
@@ -79,15 +88,14 @@ if (UNIX
     add_subdirectory(attestation_plugin)
     add_subdirectory(attestation_plugin_cert)
     add_subdirectory(backtrace)
-    if (NOT USE_SNMALLOC)
-      add_subdirectory(bigmalloc)
-    endif ()
+    add_subdirectory(bigmalloc)
     add_subdirectory(child_thread)
     add_subdirectory(cppException)
     add_subdirectory(crypto_crls_cert_chains)
     add_subdirectory(custom_claims)
     add_subdirectory(debug-mode)
     add_subdirectory(ecall)
+    add_subdirectory(ecall_conflict)
     add_subdirectory(ecall_ocall)
     add_subdirectory(echo)
     add_subdirectory(enclaveparam)
