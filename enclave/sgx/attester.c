@@ -379,7 +379,7 @@ static oe_result_t _get_attester_plugins(
             &temporary_buffer_size);
         OE_CHECK(result);
         OE_CHECK(retval);
-        if (temporary_buffer_size > allocated_buffer_size)
+        if (temporary_buffer_size != allocated_buffer_size)
             OE_RAISE(OE_UNEXPECTED);
     }
 
